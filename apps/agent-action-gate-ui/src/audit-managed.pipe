@@ -1,0 +1,28 @@
+{
+  "project_id": "a3becd64-379f-4ec4-a36b-ec65012c5ecb",
+  "name": "Agent Action Gate managed audit",
+  "source": "tools_1",
+  "components": [
+    {
+      "id": "tools_1",
+      "provider": "tools",
+      "config": { "mode": "Source", "type": "tools" },
+      "input": [],
+      "name": "Audit sync"
+    },
+    {
+      "id": "audit_1",
+      "provider": "rocketride_sql",
+      "config": {
+        "profile": "default",
+        "scope": "org",
+        "table": "agent_action_gate_audit",
+        "allow_execute": true
+      },
+      "input": [],
+      "control": [{ "classType": "tool", "from": "tools_1" }],
+      "name": "RocketRide SQL"
+    }
+  ],
+  "version": 1
+}

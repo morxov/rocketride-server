@@ -1,0 +1,73 @@
+{
+	"name": "local-agent-action-gate",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Review, approve, and audit proposed agent actions.",
+	"license": "MIT",
+	"appManifest": {
+		"id": "local.agent-action-gate",
+		"publisher": "local",
+		"name": "Agent Action Gate",
+		"description": "Review, approve, and audit proposed agent actions.",
+		"icon": "./icon.svg",
+		"readme": "./README.md",
+		"categories": [
+			"custom"
+		],
+		"mode": "free",
+		"authenticated": false,
+		"projectId": "117dbb3a-674e-4fc2-ac31-b9bbb1dae1be",
+		"billing": {
+			"plans": [
+				{
+					"nickname": "Starter",
+					"amountCents": 2900,
+					"currency": "usd",
+					"interval": "month",
+					"metadata": {
+						"includedAgents": 1
+					}
+				},
+				{
+					"nickname": "Team",
+					"amountCents": 9900,
+					"currency": "usd",
+					"interval": "month",
+					"metadata": {
+						"includedAgents": 5
+					}
+				},
+				{
+					"nickname": "Scale",
+					"amountCents": 24900,
+					"currency": "usd",
+					"interval": "month",
+					"metadata": {
+						"includedAgents": 20
+					}
+				}
+			]
+		}
+	},
+	"scripts": {
+		"dev": "rsbuild dev",
+		"build": "tsc --noEmit && rsbuild build",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0",
+		"rocketride": "file:../../.rocketride/client/rocketride.tgz",
+		"shell": "file:../../.rocketride/shell/shell.tgz"
+	},
+	"devDependencies": {
+		"@module-federation/rsbuild-plugin": "^2.5.1",
+		"@rsbuild/core": "~2.2.12",
+		"@rsbuild/plugin-react": "~2.0.1",
+		"@types/node": "^20.19.41",
+		"@types/react": "~18.3.31",
+		"@types/react-dom": "~18.3.7",
+		"react-refresh": "^0.14.2",
+		"typescript": "^5.3.0"
+	}
+}

@@ -1,0 +1,31 @@
+{
+  "project_id": "8a0a48db-404b-4b24-8bde-732506b31d83",
+  "name": "Agent Action Gate PostgreSQL audit",
+  "source": "tools_1",
+  "components": [
+    {
+      "id": "tools_1",
+      "provider": "tools",
+      "config": { "mode": "Source", "type": "tools" },
+      "input": [],
+      "name": "Audit sync"
+    },
+    {
+      "id": "audit_1",
+      "provider": "db_postgres",
+      "config": {
+        "profile": "default",
+        "host": "${ROCKETRIDE_GATE_POSTGRES_HOST}",
+        "user": "${ROCKETRIDE_GATE_POSTGRES_USER}",
+        "password": "${ROCKETRIDE_GATE_POSTGRES_PASSWORD}",
+        "database": "${ROCKETRIDE_GATE_POSTGRES_DATABASE}",
+        "table": "agent_action_gate_audit",
+        "allow_execute": true
+      },
+      "input": [],
+      "control": [{ "classType": "tool", "from": "tools_1" }],
+      "name": "PostgreSQL"
+    }
+  ],
+  "version": 1
+}

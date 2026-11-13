@@ -1,0 +1,38 @@
+{
+  "project_id": "a489870b-8586-4d4b-bb64-c93d7d60d863",
+  "name": "Agent Action Gate explanation",
+  "source": "chat_1",
+  "components": [
+    {
+      "id": "chat_1",
+      "provider": "chat",
+      "config": { "hideForm": true, "mode": "Source", "parameters": {}, "type": "chat" },
+      "name": "Question",
+      "ui": { "position": { "x": 40, "y": 120 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "llm_gemini_1",
+      "provider": "llm_gemini",
+      "config": {
+        "profile": "custom",
+        "model": "models/gemini-3.6-flash",
+        "apikey": "${ROCKETRIDE_GEMINI_KEY}",
+        "modelTotalTokens": 1048576,
+        "modelOutputTokens": 8192,
+        "temperature": 0
+      },
+      "input": [{ "lane": "questions", "from": "chat_1" }],
+      "name": "Gemini Flash",
+      "ui": { "position": { "x": 330, "y": 120 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "config": { "laneName": "answers" },
+      "input": [{ "lane": "answers", "from": "llm_gemini_1" }],
+      "name": "Answer",
+      "ui": { "position": { "x": 620, "y": 120 }, "nodeType": "default", "formDataValid": true }
+    }
+  ],
+  "version": 1
+}
