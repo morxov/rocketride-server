@@ -1,0 +1,30 @@
+{
+  "project_id": "cc4ec929-aaf5-4e26-a62c-ae8baac73824",
+  "name": "Agent Action Gate Redis",
+  "source": "tools_1",
+  "components": [
+    {
+      "id": "tools_1",
+      "provider": "tools",
+      "config": { "mode": "Source", "type": "tools" },
+      "input": [],
+      "name": "Action Gate operations",
+      "ui": { "position": { "x": 40, "y": 120 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "redis_1",
+      "provider": "tool_redis",
+      "config": {
+        "host": "127.0.0.1",
+        "port": 6381,
+        "key_prefix": "rr:agent-action-gate:v1:",
+        "allow_writes": true
+      },
+      "input": [],
+      "control": [{ "classType": "tool", "from": "tools_1" }],
+      "name": "Redis",
+      "ui": { "position": { "x": 330, "y": 120 }, "nodeType": "default", "formDataValid": true }
+    }
+  ],
+  "version": 1
+}

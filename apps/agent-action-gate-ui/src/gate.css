@@ -1,0 +1,344 @@
+.gate {
+	--gate-paper: #f4f6ee;
+	--gate-card: #fdfef8;
+	--gate-ink: #183b36;
+	--gate-muted: #4e665c;
+	--gate-line: #cad8cb;
+	--gate-amber: #f3bb61;
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 100%;
+	overflow: auto;
+	color: var(--gate-ink);
+	background: var(--gate-paper);
+	font:
+		15px/1.5 'Instrument Sans',
+		system-ui,
+		sans-serif;
+}
+.gate *,
+.gate *::before,
+.gate *::after {
+	box-sizing: border-box;
+}
+.gate h1,
+.gate h2,
+.gate p {
+	margin: 0;
+}
+.gate-shell {
+	max-width: 1080px;
+	margin: auto;
+	padding: clamp(18px, 4vw, 44px);
+}
+.gate-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 19px;
+}
+.gate-header h1 {
+	margin: 2px 0 6px;
+	font-size: clamp(30px, 5vw, 54px);
+	line-height: 1.03;
+	letter-spacing: -0.06em;
+}
+.gate-header p {
+	color: var(--gate-muted);
+}
+.gate-workspace,
+.gate-mono {
+	font:
+		12px/1.6 'IBM Plex Mono',
+		ui-monospace,
+		monospace;
+}
+.gate-connection {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: end;
+	align-items: center;
+	gap: 6px 12px;
+	font-size: 12px;
+}
+.gate-connection i {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #a34b35;
+}
+.gate-connection [data-connected='true'] i {
+	background: #237453;
+}
+.gate-connection small {
+	width: 100%;
+	text-align: right;
+	color: var(--gate-muted);
+}
+.gate-totals {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	background: var(--gate-ink);
+	color: white;
+	padding: 8px;
+	border-radius: 9px;
+}
+.gate-totals div {
+	padding: 8px clamp(8px, 2vw, 20px);
+	min-width: 0;
+}
+.gate-totals div + div {
+	border-left: 1px solid #4a6860;
+}
+.gate-totals span {
+	display: block;
+	color: #dae8df;
+	font-size: 11px;
+}
+.gate-totals strong {
+	font:
+		700 clamp(20px, 3vw, 28px)/1.25 'IBM Plex Mono',
+		ui-monospace,
+		monospace;
+	color: var(--gate-amber);
+}
+.gate-feedback {
+	min-height: 24px;
+	margin-top: 5px;
+	font-size: 12px;
+	color: var(--gate-muted);
+}
+.gate .gate-error {
+	margin: 0 0 10px;
+	color: #852a21;
+	background: #ffebe0;
+	padding: 8px 12px;
+	border-radius: 6px;
+}
+.gate-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	gap: 12px;
+	align-items: start;
+}
+.gate-card {
+	min-width: 0;
+	padding: clamp(12px, 2vw, 19px);
+	background: var(--gate-card);
+	border: 1px solid var(--gate-line);
+	border-radius: 9px;
+}
+.gate-card-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 7px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+.gate-card h2 {
+	font-size: 17px;
+	line-height: 1.2;
+	letter-spacing: -0.025em;
+}
+.gate-card-title > span {
+	font-size: 12px;
+}
+.gate-inbox ul,
+.gate-audit ol {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.gate-inbox li + li {
+	margin-top: 6px;
+}
+.gate-inbox li button {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	text-align: left;
+	padding: 8px 10px;
+}
+.gate-inbox li button[aria-pressed='true'] {
+	border-left: 4px solid #b76c24;
+	background: #eaf1e6;
+}
+.gate-inbox small {
+	display: block;
+	color: var(--gate-muted);
+	overflow-wrap: anywhere;
+}
+.gate-badge {
+	color: #623d16;
+	background: #fae9c5;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+.gate-badge:is([data-status='executed'], [data-status='approved']) {
+	color: #214e38;
+	background: #dceee0;
+}
+.gate-badge:is([data-status='expired'], [data-status='rejected']) {
+	color: #5e5652;
+	background: #efebe4;
+}
+.gate-detail dl {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	margin: 8px 0;
+	gap: 7px 12px;
+}
+.gate-detail dt {
+	font-size: 12px;
+	color: var(--gate-muted);
+}
+.gate-detail dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+.gate .gate-summary {
+	padding: 9px 12px;
+	margin: 9px 0;
+	background: #ebf1e9;
+	border-left: 3px solid #6c8f78;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+.gate .gate-note,
+.gate .gate-empty {
+	color: var(--gate-muted);
+	font-size: 13px;
+	margin: 5px 0 0;
+}
+.gate .gate-receipt {
+	color: #245b3e;
+	font-size: 13px;
+	margin-top: 6px;
+	font-weight: 700;
+}
+.gate-actions {
+	display: flex;
+	align-items: end;
+	gap: 6px 9px;
+	flex-wrap: wrap;
+	margin-top: 11px;
+}
+.gate-form label,
+.gate-audit label {
+	display: block;
+	font-size: 12px;
+	font-weight: 700;
+}
+.gate-form label + label {
+	margin-top: 7px;
+}
+.gate-form-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 8px;
+	margin-top: 7px;
+}
+.gate-form-row label + label {
+	margin-top: 0;
+}
+.gate input:not([type='checkbox']),
+.gate select,
+.gate textarea {
+	width: 100%;
+	min-height: 34px;
+	display: block;
+	margin: 3px 0 0;
+	padding: 4px 7px;
+	font: inherit;
+	border: 1px solid #aabdb0;
+	border-radius: 5px;
+	background: white;
+	color: var(--gate-ink);
+	color-scheme: light;
+}
+.gate textarea {
+	resize: vertical;
+}
+.gate button {
+	border: 1px solid #aabdb0;
+	border-radius: 5px;
+	padding: 6px 9px;
+	color: var(--gate-ink);
+	background: var(--gate-card);
+	font: inherit;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+}
+.gate button:hover:enabled {
+	background: #e3eee2;
+}
+.gate button:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+.gate .gate-primary {
+	background: var(--gate-ink);
+	color: white;
+	border-color: var(--gate-ink);
+}
+.gate .gate-primary:hover:enabled {
+	background: #28574d;
+}
+.gate .gate-explain {
+	margin-top: 9px;
+}
+.gate :is(button, input, textarea, select):focus-visible {
+	outline: 2px solid #97501a;
+	outline-offset: 2px;
+}
+.gate-policy-switch {
+	display: flex;
+	align-items: baseline;
+	gap: 7px;
+	font-size: 14px;
+	font-weight: 650;
+}
+.gate-policy-switch input {
+	accent-color: var(--gate-ink);
+	margin: 0;
+}
+.gate-audit {
+	margin-top: 12px;
+}
+.gate-audit ol {
+	max-height: 244px;
+	overflow: auto;
+}
+.gate-audit li {
+	display: grid;
+	grid-template-columns: minmax(68px, 0.3fr) minmax(0, 1fr) auto;
+	gap: 5px 9px;
+	padding: 5px 0;
+	border-bottom: 1px solid var(--gate-line);
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}
+.gate-audit li small {
+	color: var(--gate-muted);
+}
+@media (max-width: 690px) {
+	.gate-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.gate-connection {
+		justify-content: start;
+	}
+	.gate-connection small {
+		text-align: left;
+	}
+}
