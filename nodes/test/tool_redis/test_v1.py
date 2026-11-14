@@ -156,6 +156,12 @@ def test_counter_overflow_and_wrong_type_do_not_change_value(store):
     store.client.hset('rr:test:hash', mapping={'a': 'b'})
     with pytest.raises(RedisNodeError):
         store.incr('hash')
+    # A stored counter past the signed 64-bit range fails even when the sum
+    # would fit: Redis parses the stored value before adding the increment.
+    store.set('big', str(2**63))
+    with pytest.raises(RedisNodeError):
+        store.incr('big', '-1')
+    assert store.get('big')['value'] == str(2**63)
 
 
 def test_scan_one_call_empty_page_and_full_cursor(store):
@@ -205,6 +211,7 @@ def test_new_writes_report_unknown_and_are_not_retried(store, operation, args):
         'fc00::1',
         '::ffff:127.0.0.1',
         '64:ff9b::a9fe:a9fe',
+        'fec0::1',
     ],
 )
 def test_host_rejects_non_global_dns(monkeypatch, address):

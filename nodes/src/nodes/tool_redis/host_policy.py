@@ -17,6 +17,10 @@ def public_ip(address):
             ip = ip.ipv4_mapped
         elif ip in _NAT64_PREFIX:
             ip = ipaddress.IPv4Address(ip.packed[-4:])
+        elif ip.is_site_local:
+            # Deprecated fec0::/10 is neither is_private nor excluded from
+            # is_global, so reject it before the shared check below.
+            return False
     return ip.is_global and not ip.is_multicast
 
 

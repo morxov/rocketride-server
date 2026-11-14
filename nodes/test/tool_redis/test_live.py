@@ -207,9 +207,8 @@ def test_real_auth_and_tls(monkeypatch, url_var):
     if not url:
         pytest.skip(f'Set {url_var} for authentication/TLS integration')
     parts = urlsplit(url)
-    cfg = dict(
-        host=parts.hostname, port=parts.port, password=unquote(parts.password or ''), use_tls=parts.scheme == 'rediss'
-    )
+    password = unquote(parts.password or '')
+    cfg = dict(host=parts.hostname, port=parts.port, password=password, use_tls=parts.scheme == 'rediss')
     # TLS endpoints in the fixture trust a test CA only through SSL_CERT_FILE.
     if cfg['use_tls']:
         ca = os.environ.get('REDIS_TLS_CA_FILE')
@@ -233,11 +232,16 @@ def test_real_auth_and_tls(monkeypatch, url_var):
         client.close()
         pool.disconnect()
     if cfg['use_tls']:
+        # Restore the valid credential: with the wrong password still set, an
+        # authentication failure would satisfy these assertions on its own and
+        # hide a certificate check that never rejected anything.
+        cfg['password'] = password
         cfg['host'] = '127.0.0.1'  # test certificate has only DNS:localhost
         client, pool = create_client(Settings.from_config(cfg))
         try:
-            with pytest.raises(RedisNodeError):
+            with pytest.raises(RedisNodeError) as err:
                 redis_call(client.ping)
+            assert err.value.code == 'connection_error'
         finally:
             client.close()
             pool.disconnect()
@@ -245,8 +249,9 @@ def test_real_auth_and_tls(monkeypatch, url_var):
         monkeypatch.setenv('SSL_CERT_FILE', '/nonexistent/redis-test-ca')
         client, pool = create_client(Settings.from_config(cfg))
         try:
-            with pytest.raises(RedisNodeError):
+            with pytest.raises(RedisNodeError) as err:
                 redis_call(client.ping)
+            assert err.value.code == 'connection_error'
         finally:
             client.close()
             pool.disconnect()
