@@ -1,0 +1,49 @@
+{
+	"components": [
+		{
+			"id": "tools_1",
+			"provider": "tools",
+			"name": "Margin Guard tools",
+			"config": { "hideForm": true, "mode": "Source", "parameters": {}, "type": "tools" },
+			"ui": { "position": { "x": 20, "y": 200 }, "measured": { "width": 150, "height": 66 }, "nodeType": "default", "formDataValid": true }
+		},
+		{
+			"id": "redis_1",
+			"provider": "tool_redis",
+			"name": "Redis (usage, budgets, switches)",
+			"config": {
+				"host": "127.0.0.1",
+				"port": 6379,
+				"key_prefix": "rr:margin-guard:",
+				"allow_writes": true,
+				"default_ttl_seconds": 3600
+			},
+			"control": [{ "classType": "tool", "from": "tools_1" }],
+			"ui": { "position": { "x": 240, "y": 120 }, "measured": { "width": 150, "height": 40 }, "nodeType": "default", "formDataValid": true }
+		},
+		{
+			"id": "db_postgres_1",
+			"provider": "db_postgres",
+			"name": "Audit log (Postgres)",
+			"config": {
+				"profile": "default",
+				"default": {
+					"host": "127.0.0.1:5433",
+					"user": "margin_guard",
+					"password": "${ROCKETRIDE_MG_PG_PASSWORD}",
+					"database": "margin_guard",
+					"table": "mg_audit",
+					"db_description": "AI Margin Guard audit log: every proposed, approved, rejected and applied change.",
+					"max_attempts": 5,
+					"allow_execute": true
+				},
+				"parameters": {}
+			},
+			"control": [{ "classType": "tool", "from": "tools_1" }],
+			"ui": { "position": { "x": 240, "y": 300 }, "measured": { "width": 150, "height": 40 }, "nodeType": "default", "formDataValid": true }
+		}
+	],
+	"project_id": "20eec4eb-5496-4b20-9168-3edd9d4b4239",
+	"viewport": { "x": 0, "y": 0, "zoom": 1 },
+	"version": 1
+}

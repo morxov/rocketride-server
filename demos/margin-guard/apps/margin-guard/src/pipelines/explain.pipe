@@ -1,0 +1,122 @@
+{
+	"components": [
+		{
+			"id": "chat_1",
+			"provider": "chat",
+			"name": "Facts from the app",
+			"config": {
+				"hideForm": true,
+				"mode": "Source",
+				"parameters": {},
+				"type": "chat"
+			},
+			"ui": {
+				"position": {
+					"x": 20,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "prompt_1",
+			"provider": "prompt",
+			"name": "Margin analyst brief",
+			"config": {
+				"instructions": [
+					"You are a finance analyst for a B2B SaaS company that sells AI features. The question contains JSON facts the app already read from Redis for ONE customer: plan revenue, AI cost this month, budget, per-feature usage, and any active off switches or model fallback.",
+					"Explain the situation in plain English for a product manager. Use only the numbers given; never invent figures, causes or history. Money is in US dollars.",
+					"Reply in Markdown with exactly three sections: '### What is happening' (two or three sentences, naming the feature driving cost), '### Suggested next step' (one option the reviewer could propose in the app: change the budget, switch a feature off for a while, or fall back to a cheaper model; say why), and '### Draft email to the customer' (under 90 words, friendly, no internal cost figures).",
+					"You explain and draft. You do not decide and you cannot change anything."
+				],
+				"parameters": {}
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "chat_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 240,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "llm_gemini_1",
+			"provider": "llm_gemini",
+			"name": "Gemini",
+			"config": {
+				"profile": "custom",
+				"model": "models/gemini-3.5-flash-lite",
+				"apikey": "${ROCKETRIDE_GEMINI_KEY}",
+				"modelTotalTokens": 1048576,
+				"modelOutputTokens": 8192,
+				"temperature": 0
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "prompt_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 460,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "response_answers_1",
+			"provider": "response_answers",
+			"config": {
+				"laneName": "answers"
+			},
+			"input": [
+				{
+					"lane": "answers",
+					"from": "llm_gemini_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 680,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		}
+	],
+	"project_id": "76614653-8d13-4fd3-a4ab-e457496ffb98",
+	"viewport": {
+		"x": 0,
+		"y": 0,
+		"zoom": 1
+	},
+	"version": 1
+}

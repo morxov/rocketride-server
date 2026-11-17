@@ -1,0 +1,4 @@
+{
+  "rocketride.development.connectionMode": "onprem",
+  "rocketride.development.hostUrl": "ws://127.0.0.1:5565"
+}

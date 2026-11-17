@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"rocketride": "file:.rocketride/client/rocketride.tgz"
+	}
+}

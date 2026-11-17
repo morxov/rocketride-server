@@ -1,0 +1,6 @@
+.rocketride/
+.env
+**/node_modules/
+**/dist/
+.venv/
+__pycache__/

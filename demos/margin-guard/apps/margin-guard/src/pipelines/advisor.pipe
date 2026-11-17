@@ -1,0 +1,181 @@
+{
+	"components": [
+		{
+			"id": "chat_1",
+			"provider": "chat",
+			"name": "Advisor chat",
+			"config": {
+				"hideForm": true,
+				"mode": "Source",
+				"parameters": {},
+				"type": "chat"
+			},
+			"ui": {
+				"position": {
+					"x": 20,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "agent_rocketride_1",
+			"provider": "agent_rocketride",
+			"name": "Margin advisor (read-only)",
+			"config": {
+				"agent_description": "Answers questions about AI spend and margin per customer by reading live keys from Redis. Read-only.",
+				"instructions": [
+					"You answer questions about AI cost, budgets and margin for a SaaS company's customers. All facts live in Redis. Read them with the Redis tools before answering; never answer from memory or guess a number.",
+					"ALWAYS start with exactly one call: redis_get with key 'rollup:current'. It is a JSON snapshot the app refreshes continuously, holding the month and, for every customer: id, name, plan, revenue_usd, budget_usd, cost_usd, budget_used_pct, margin_pct, per-feature cost_usd and calls, switched_off features and the fallback model. It answers almost every question, so answer straight after reading it. Do not scan first.",
+					"Only if the rollup is missing or lacks what was asked, read individual keys. Logical key names (the namespace is added for you; MONTH is YYYY-MM): 'budget:CUSTOMER' JSON with name, plan, revenue_usd, budget_usd. 'usage:CUSTOMER:FEATURE:MONTH' AI cost counter in micro-dollars (divide by 1,000,000). 'calls:CUSTOMER:FEATURE:MONTH' number of AI calls. 'switch:CUSTOMER:FEATURE' exists with value 'off' while a feature is switched off; its ttl_seconds says when it turns back on. 'fallback:CUSTOMER' cheaper model in force. 'pending:ID' a proposed change waiting for approval. Use redis_scan (cursor '0', repeat with the returned cursor until done is true) to list keys, and issue independent reads together.",
+					"Your Redis connection is read-only. You cannot change budgets, switches or fallbacks and must not try. When asked for a change, still read 'rollup:current' first, then reply with the current state of that customer and say the change has to be proposed on the customer's page so a person can approve it.",
+					"Answer briefly in Markdown: lead with the direct answer in one or two sentences, name the month, and add a small table only when comparing more than two customers. Copy every number exactly as it appears in the data, with dollar amounts to two decimals; state each figure once."
+				],
+				"max_waves": 6,
+				"require_tool_call": true,
+				"parameters": {}
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "chat_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 240,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 86
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "llm_gemini_1",
+			"provider": "llm_gemini",
+			"name": "Gemini",
+			"config": {
+				"profile": "custom",
+				"model": "models/gemini-3.5-flash-lite",
+				"apikey": "${ROCKETRIDE_GEMINI_KEY}",
+				"modelTotalTokens": 1048576,
+				"modelOutputTokens": 8192,
+				"temperature": 0
+			},
+			"control": [
+				{
+					"classType": "llm",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 60,
+					"y": 380
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "memory_internal_1",
+			"provider": "memory_internal",
+			"name": "Memory (Internal)",
+			"config": {
+				"type": "memory_internal"
+			},
+			"control": [
+				{
+					"classType": "memory",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 240,
+					"y": 380
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "redis_readonly_1",
+			"provider": "tool_redis",
+			"name": "Redis (read-only)",
+			"config": {
+				"host": "127.0.0.1",
+				"port": 6379,
+				"key_prefix": "rr:margin-guard:",
+				"allow_writes": false
+			},
+			"control": [
+				{
+					"classType": "tool",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 420,
+					"y": 380
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "response_answers_1",
+			"provider": "response_answers",
+			"config": {
+				"laneName": "answers"
+			},
+			"input": [
+				{
+					"lane": "answers",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 460,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		}
+	],
+	"project_id": "f5a5ed0d-547f-4c88-b8e5-a3d13b874b35",
+	"viewport": {
+		"x": 0,
+		"y": 0,
+		"zoom": 1
+	},
+	"version": 1
+}
