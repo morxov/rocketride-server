@@ -1,0 +1,42 @@
+{
+  "name": "local-jobradar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Job-search dashboard for internships and new-grad roles: only what is new, duplicates merged, stale reposts flagged, a tracker with follow-ups, and a Gemini assistant.",
+  "license": "MIT",
+  "appManifest": {
+    "id": "local.jobradar",
+    "publisher": "local",
+    "name": "JobRadar",
+    "description": "Job-search dashboard for internships and new-grad roles: only what is new, duplicates merged, stale reposts flagged, a tracker with follow-ups, and a Gemini assistant.",
+    "icon": "./icon.svg",
+    "readme": "./README.md",
+    "categories": [
+      "custom"
+    ],
+    "mode": "free",
+    "authenticated": true,
+    "projectId": "ea276fc0-40ae-4583-b6a7-2d2448f64b4c"
+  },
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "tsc --noEmit && rsbuild build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rocketride": "file:../../.rocketride/client/rocketride.tgz",
+    "shell": "file:../../.rocketride/shell/shell.tgz"
+  },
+  "devDependencies": {
+    "@module-federation/rsbuild-plugin": "2.5.1",
+    "@rsbuild/core": "~2.0.11",
+    "@rsbuild/plugin-react": "~2.0.1",
+    "@types/node": "^20.19.41",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "react-refresh": "^0.14.2",
+    "typescript": "^5.3.0"
+  }
+}
