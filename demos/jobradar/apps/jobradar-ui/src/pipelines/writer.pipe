@@ -1,0 +1,124 @@
+{
+	"components": [
+		{
+			"id": "chat_1",
+			"provider": "chat",
+			"name": "Request from the app",
+			"config": {
+				"hideForm": true,
+				"mode": "Source",
+				"parameters": {},
+				"type": "chat"
+			},
+			"ui": {
+				"position": {
+					"x": 20,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "prompt_1",
+			"provider": "prompt",
+			"name": "Career writer",
+			"config": {
+				"instructions": [
+					"You help one job seeker. The question is JSON with a \"task\" field and the facts the app gathered: their profile (skills, evidence lines from their resume) and usually one job (title, company, description).",
+					"Never invent experience, skills, employers, numbers or contacts. Only use facts present in the JSON. If the description is missing or short, say so and work from the title.",
+					"task \"fit\": reply in Markdown with these sections. '### Verdict' one line: Strong fit, Possible fit or Long shot, plus a one-sentence reason. '### Where you match' a bullet list of up to 5 items, each 'Requirement -> your evidence' quoting the job requirement and the matching profile evidence or skill. '### Gaps to be honest about' up to 4 bullets of requirements the profile does not show, each with one concrete way to address it (a project, a course, or how to phrase it truthfully). '### Keywords from the posting you can truthfully use' a comma-separated list limited to things the profile actually supports.",
+					"task \"cover\": a cover note under 160 words in plain text, first person, specific to the company and role, built only from the profile evidence. No placeholders except [Hiring Manager] if no name is known.",
+					"task \"followup\": a short follow-up email (subject line, then under 110 words) to send after applying or interviewing, polite and specific to the role and the dates given. Plain text.",
+					"task \"ask\": answer the user's free-form \"question\" field using the facts given, briefly, in Markdown."
+				],
+				"parameters": {}
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "chat_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 240,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "llm_gemini_1",
+			"provider": "llm_gemini",
+			"name": "Gemini",
+			"config": {
+				"profile": "custom",
+				"model": "models/gemini-3.5-flash-lite",
+				"apikey": "${ROCKETRIDE_GEMINI_KEY}",
+				"modelTotalTokens": 1048576,
+				"modelOutputTokens": 8192,
+				"temperature": 0
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "prompt_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 460,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "response_answers_1",
+			"provider": "response_answers",
+			"config": {
+				"laneName": "answers"
+			},
+			"input": [
+				{
+					"lane": "answers",
+					"from": "llm_gemini_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 680,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		}
+	],
+	"project_id": "86f19fe6-94db-4d09-af6d-e3d22bc70fec",
+	"viewport": {
+		"x": 0,
+		"y": 0,
+		"zoom": 1
+	},
+	"version": 1
+}

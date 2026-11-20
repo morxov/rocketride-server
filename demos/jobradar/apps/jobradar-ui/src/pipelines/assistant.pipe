@@ -1,0 +1,241 @@
+{
+	"components": [
+		{
+			"id": "chat_1",
+			"provider": "chat",
+			"name": "Assistant chat",
+			"config": {
+				"hideForm": true,
+				"mode": "Source",
+				"parameters": {},
+				"type": "chat"
+			},
+			"ui": {
+				"position": {
+					"x": 20,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "agent_rocketride_1",
+			"provider": "agent_rocketride",
+			"name": "JobRadar assistant",
+			"config": {
+				"agent_description": "A job-search assistant that answers from the user's live JobRadar data in Redis, saves notes and reminders, and reads job pages.",
+				"instructions": [
+					"You are JobRadar, a job-search assistant for one early-career user. Be concise, concrete and honest. Never invent jobs, companies, dates, links or experience.",
+					"ALWAYS start by calling redis_read.redis_get with key 'u:alex:digest' (one call). It is a JSON snapshot the app refreshes: the user's profile, today's date, new and top job matches (fp, title, company, location, score, reasons, posted, flags, url), the tracker (each application with status and dates), reminders and stats. Answer from it. Do not scan Redis.",
+					"If the user pastes a job URL or asks about a posting whose text you need, call firecrawl_1.scrape_url with that url and format 'markdown', then compare it to the profile in the digest.",
+					"For any date the user names (Friday, next week, the 3rd), look it up in the digest's 'calendar' map, which lists today and the next 13 days by weekday; never compute dates yourself. 'Friday' means 'this coming Friday' unless they say next week.",
+					"You may save a note or a reminder when the user asks (and only then): call redis_notes.redis_set with key 'reminder:<short-slug>' or 'note:<short-slug>', value a compact JSON string {\"text\": ..., \"due\": \"YYYY-MM-DD\" (reminders only), \"created\": today's date}, and ttl_seconds 0. Make one call per item and confirm what you saved. You cannot change the tracker or job data; tell the user to use the Jobs or Tracker screens for that.",
+					"When you list jobs, show title, company, score and why, and link the url. Prefer jobs flagged new. Mention stale or reposted flags when relevant.",
+					"Format answers in Markdown with short bullets. Do not paste raw JSON."
+				],
+				"max_waves": 5,
+				"require_tool_call": true,
+				"parameters": {}
+			},
+			"input": [
+				{
+					"lane": "questions",
+					"from": "chat_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 260,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 86
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "llm_gemini_1",
+			"provider": "llm_gemini",
+			"name": "Gemini",
+			"config": {
+				"profile": "custom",
+				"model": "models/gemini-3.5-flash-lite",
+				"apikey": "${ROCKETRIDE_GEMINI_KEY}",
+				"modelTotalTokens": 1048576,
+				"modelOutputTokens": 8192,
+				"temperature": 0
+			},
+			"control": [
+				{
+					"classType": "llm",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 20,
+					"y": 400
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "memory_internal_1",
+			"provider": "memory_internal",
+			"name": "Memory (Internal)",
+			"config": {
+				"type": "memory_internal"
+			},
+			"control": [
+				{
+					"classType": "memory",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 190,
+					"y": 400
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "redis_read",
+			"provider": "tool_redis",
+			"name": "Redis (read-only, all JobRadar data)",
+			"config": {
+				"host": "127.0.0.1",
+				"port": 6379,
+				"key_prefix": "jobradar:",
+				"allow_writes": false,
+				"default_ttl_seconds": 0
+			},
+			"control": [
+				{
+					"classType": "tool",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 360,
+					"y": 400
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "redis_notes",
+			"provider": "tool_redis",
+			"name": "Redis (notes and reminders only)",
+			"config": {
+				"host": "127.0.0.1",
+				"port": 6379,
+				"key_prefix": "jobradar:u:alex:notes:",
+				"allow_writes": true,
+				"default_ttl_seconds": 0
+			},
+			"control": [
+				{
+					"classType": "tool",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 530,
+					"y": 400
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "firecrawl_1",
+			"provider": "tool_firecrawl",
+			"name": "Firecrawl (job pages)",
+			"config": {
+				"type": "tool_firecrawl",
+				"apikey": "${ROCKETRIDE_FIRECRAWL_KEY}"
+			},
+			"control": [
+				{
+					"classType": "tool",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 700,
+					"y": 400
+				},
+				"measured": {
+					"width": 150,
+					"height": 40
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		},
+		{
+			"id": "response_answers_1",
+			"provider": "response_answers",
+			"config": {
+				"laneName": "answers"
+			},
+			"input": [
+				{
+					"lane": "answers",
+					"from": "agent_rocketride_1"
+				}
+			],
+			"ui": {
+				"position": {
+					"x": 500,
+					"y": 200
+				},
+				"measured": {
+					"width": 150,
+					"height": 66
+				},
+				"nodeType": "default",
+				"formDataValid": true
+			}
+		}
+	],
+	"project_id": "46c1673b-ad96-4b43-af1a-626b6ff894fa",
+	"viewport": {
+		"x": 0,
+		"y": 0,
+		"zoom": 1
+	},
+	"version": 1
+}

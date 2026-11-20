@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobRadar: the job search that only shows you what is new</title>
+<style>
+	:root {
+		--bg: #0e1116; --surface: #161b22; --paper: #1c222b; --border: #2a313c;
+		--text: #e6e9ee; --muted: #9aa4b2; --brand: #5b8cff; --brand-2: #7c5bff;
+		--ok: #3fb68b; --warn: #e0a43a; --bad: #e5616a;
+		--radius: 12px;
+	}
+	@media (prefers-color-scheme: light) {
+		:root { --bg: #f7f8fa; --surface: #ffffff; --paper: #f1f3f6; --border: #dde2e9; --text: #151a21; --muted: #5b6573; }
+	}
+	* { box-sizing: border-box; }
+	body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+	a { color: var(--brand); text-decoration: none; }
+	a:hover { text-decoration: underline; }
+	.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+	nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+	nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+	.logo { font-weight: 800; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+	.logo-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); }
+	nav .links { display: flex; gap: 20px; font-size: 14px; }
+	nav .links a { color: var(--muted); }
+	section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+	h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 18px; }
+	h2 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 10px; }
+	h3 { font-size: 17px; margin: 0 0 6px; }
+	.lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 28px; }
+	.sub { color: var(--muted); max-width: 700px; margin: 0 0 32px; }
+	.grad { background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+	.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); margin-bottom: 18px; }
+	.btns { display: flex; gap: 12px; flex-wrap: wrap; }
+	.btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 15px; border: 1px solid var(--border); color: var(--text); }
+	.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+	.btn:hover { text-decoration: none; filter: brightness(1.08); }
+
+	/* hero mock */
+	.hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
+	.mock { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+	.mock-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+	.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+	.tile { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+	.tile b { display: block; font-size: 22px; }
+	.tile span { font-size: 11px; color: var(--muted); }
+	.job { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; margin-top: 6px; font-size: 13px; }
+	.job small { display: block; color: var(--muted); font-size: 11.5px; }
+	.score { font-weight: 800; font-size: 15px; min-width: 34px; text-align: right; }
+	.tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+	.tag.new { background: color-mix(in srgb, var(--brand) 22%, transparent); color: var(--brand); }
+	.tag.stale { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+	.tag.fresh { background: color-mix(in srgb, var(--ok) 22%, transparent); color: var(--ok); }
+	.toast { margin-top: 10px; border-left: 3px solid var(--brand); background: var(--paper); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; }
+
+	/* cards */
+	.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+	.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+	.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+	.card p { margin: 0; color: var(--muted); font-size: 15px; }
+	.icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand); font-weight: 800; margin-bottom: 12px; }
+
+	table { width: 100%; border-collapse: collapse; font-size: 15px; }
+	th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+	th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+	td:first-child { color: var(--muted); width: 44%; }
+	.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+	code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--paper); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+
+	/* pipeline diagram */
+	.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 4px; }
+	.node { font: 12.5px ui-monospace, Menlo, monospace; padding: 5px 9px; border-radius: 6px; background: var(--paper); border: 1px solid var(--border); }
+	.node.redis { border-color: var(--bad); color: var(--bad); }
+	.node.llm { border-color: var(--brand); color: var(--brand); }
+	.arrow { color: var(--muted); }
+
+	/* roadmap */
+	.roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+	.phase { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; }
+	.phase-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+	.phase h3 { font-size: 19px; }
+	.when { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+	.phase .goal { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+	.phase:nth-child(1) { border-top: 3px solid var(--ok); }
+	.phase:nth-child(2) { border-top: 3px solid var(--brand); }
+	.phase:nth-child(3) { border-top: 3px solid var(--brand-2); }
+	.item { padding: 10px 0; border-top: 1px solid var(--border); font-size: 14.5px; }
+	.item b { display: block; font-size: 14.5px; }
+	.item span { color: var(--muted); font-size: 13.5px; }
+	.status { float: right; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 8px; }
+	.status.bug { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+	.status.done { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+	.status.test { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+	.status.feat { background: color-mix(in srgb, var(--brand) 20%, transparent); color: var(--brand); }
+	.status.plat { background: color-mix(in srgb, var(--brand-2) 22%, transparent); color: var(--brand-2); }
+	.shipped { margin-top: 24px; }
+	.shipped ul { columns: 2; margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; }
+	.shipped li { margin-bottom: 4px; break-inside: avoid; }
+
+	ol.demo { margin: 0; padding-left: 22px; }
+	ol.demo li { margin-bottom: 8px; }
+	footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+
+	@media (max-width: 860px) {
+		.hero, .grid3, .grid2, .roadmap { grid-template-columns: 1fr; }
+		nav .links { display: none; }
+		.shipped ul { columns: 1; }
+		td:first-child { width: auto; }
+	}
+</style>
+</head>
+<body>
+
+<nav>
+	<div class="wrap">
+		<div class="logo"><span class="logo-dot"></span>JobRadar</div>
+		<div class="links">
+			<a href="#why">Why</a>
+			<a href="#features">Features</a>
+			<a href="#how">How it works</a>
+			<a href="#roadmap">Roadmap</a>
+			<a href="#demo">Demo</a>
+		</div>
+	</div>
+</nav>
+
+<header>
+	<section style="padding-top: 64px;">
+		<div class="wrap hero">
+			<div>
+				<span class="pill">Built on RocketRide · Redis memory · Gemini</span>
+				<h1>The job search that only shows you <span class="grad">what is new</span>.</h1>
+				<p class="lede">JobRadar watches about 8,000 open internship and new-grad roles, merges the duplicates, flags ghost and reposted listings, and tells you the moment a role that fits your resume goes live. Everything else stays out of the way.</p>
+				<div class="btns">
+					<a class="btn primary" href="#demo">See the demo</a>
+					<a class="btn" href="#roadmap">Roadmap</a>
+				</div>
+			</div>
+			<div class="mock" aria-label="JobRadar dashboard preview">
+				<div class="mock-head"><b style="color: var(--text);">Hi Alex</b><span>Last checked 2 min ago</span></div>
+				<div class="tiles">
+					<div class="tile"><b>7</b><span>New for you</span></div>
+					<div class="tile"><b>2</b><span>Follow-ups due</span></div>
+					<div class="tile"><b>41</b><span>Likely stale</span></div>
+				</div>
+				<div class="job"><div>Software Engineer Intern<span class="tag new">NEW</span><span class="tag fresh">FRESH</span><small>Ramp · New York · posted 3 h ago</small></div><div class="score" style="color: var(--ok);">92</div></div>
+				<div class="job"><div>ML Engineer Intern, Summer 2027<span class="tag new">NEW</span><small>Scale AI · San Francisco · title matches "machine learning"</small></div><div class="score" style="color: var(--ok);">81</div></div>
+				<div class="job"><div>Backend Engineer Intern<span class="tag stale">STALE</span><small>Acme Corp · reposted 4 times since Jul 2</small></div><div class="score" style="color: var(--warn);">48</div></div>
+				<div class="toast"><b>3 new matches</b> since your last check. Top: Software Engineer Intern at Ramp (92).</div>
+			</div>
+		</div>
+	</section>
+</header>
+
+<section id="why">
+	<div class="wrap">
+		<h2>Why build another job tool</h2>
+		<p class="sub">We reviewed LinkedIn, Indeed, Handshake, Simplify, Teal, Huntr, Jobright, Jobscan and others. They all cover search, alerts, a status board and a match score. These are the complaints none of them handle well.</p>
+		<div class="table-card">
+			<table>
+				<thead><tr><th>The problem</th><th>What JobRadar does</th></tr></thead>
+				<tbody>
+					<tr><td>Ghost, stale and reposted listings: about 1 in 5 postings is a ghost</td><td>Every card shows when the role first appeared, how many times it was reposted, and whether it closed. Likely stale roles rank lower.</td></tr>
+					<tr><td>You hear about roles late, after the applicant count has grown a lot</td><td>Sources are re-checked every 10 minutes. A new match pops up as a notification and lands in <b>New</b>.</td></tr>
+					<tr><td>The same job, five times, from five boards</td><td>One fingerprint per company and role merges duplicates into one card, linked to the company's own application page.</td></tr>
+					<tr><td>No follow-up reminders (Simplify, Teal and Huntr have none)</td><td>Marking a job Applied schedules a follow-up a week later. The AI drafts the email; you send it.</td></tr>
+					<tr><td>Opaque match scores and AI that invents skills</td><td>Every point has a reason you can read. <b>Explain fit</b> pairs each requirement with evidence from your own resume and lists honest gaps.</td></tr>
+					<tr><td>Paywalls, billing traps and auto-apply spam</td><td>Free and local, with no auto-apply. You get a short "worth applying to today" list instead.</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</section>
+
+<section id="features">
+	<div class="wrap">
+		<h2>What you get</h2>
+		<p class="sub">Six screens, one job: spend your time on the few roles that are fresh, real, and a fit.</p>
+		<div class="grid3">
+			<div class="card"><div class="icon">D</div><h3>Dashboard</h3><p>New since your last check, follow-ups due, your pipeline, today's best picks, and alerts when a posting you track closes.</p></div>
+			<div class="card"><div class="icon">J</div><h3>Jobs inbox</h3><p>New, All matches and Hidden tabs. Opening, saving or hiding a job takes it out of New. Filters for freshness, remote and stale.</p></div>
+			<div class="card"><div class="icon">F</div><h3>Explain fit</h3><p>The full posting, fetched from the company's job board or Firecrawl, and a requirement-by-requirement comparison with your resume.</p></div>
+			<div class="card"><div class="icon">T</div><h3>Tracker</h3><p>Saved, Applied, Online assessment, Interview, Offer, Closed. Automatic follow-up reminders and drafted follow-up emails.</p></div>
+			<div class="card"><div class="icon">A</div><h3>Assistant</h3><p>A Gemini agent that knows your matches and applications, saves reminders and notes, and reads any job link you paste.</p></div>
+			<div class="card"><div class="icon">P</div><h3>Profile and sources</h3><p>Drop a resume to build your profile. Tune roles, locations, sponsorship and score threshold, and watch any company's Greenhouse, Lever or Ashby board.</p></div>
+		</div>
+	</div>
+</section>
+
+<section id="how">
+	<div class="wrap">
+		<h2>How it works</h2>
+		<p class="sub">JobRadar is a RocketRide app: a React interface on the platform shell, driving four pipelines on a local RocketRide engine. Redis is its memory; Gemini 3.5 Flash Lite is the AI.</p>
+		<div class="grid2">
+			<div class="card">
+				<h3>jobradar-tools.pipe</h3>
+				<div class="flow"><span class="node">tools</span><span class="arrow">→</span><span class="node redis">tool_redis × 3</span><span class="node">tool_firecrawl</span></div>
+				<p>Every read and write the app makes. Each Redis node is locked to its own namespace: the job index, your data, and your seen and hidden marks.</p>
+			</div>
+			<div class="card">
+				<h3>profile.pipe</h3>
+				<div class="flow"><span class="node">webhook</span><span class="arrow">→</span><span class="node">parse</span><span class="arrow">→</span><span class="node">prompt</span><span class="arrow">→</span><span class="node llm">llm_gemini</span></div>
+				<p>Turns a resume PDF into a structured profile: level, target roles, skills, locations and evidence.</p>
+			</div>
+			<div class="card">
+				<h3>writer.pipe</h3>
+				<div class="flow"><span class="node">chat</span><span class="arrow">→</span><span class="node">prompt</span><span class="arrow">→</span><span class="node llm">llm_gemini</span><span class="arrow">→</span><span class="node">response</span></div>
+				<p>Explain fit, cover notes and follow-up emails. Told never to invent experience.</p>
+			</div>
+			<div class="card">
+				<h3>assistant.pipe</h3>
+				<div class="flow"><span class="node">chat</span><span class="arrow">→</span><span class="node">agent_rocketride</span><span class="arrow">+</span><span class="node llm">llm_gemini</span><span class="node redis">tool_redis (read)</span><span class="node redis">tool_redis (notes)</span><span class="node">tool_firecrawl</span></div>
+				<p>An agent that can read everything but write only to its own notes namespace.</p>
+			</div>
+		</div>
+		<h3 style="margin-top: 32px;">What Redis does</h3>
+		<div class="grid3" style="margin-top: 12px;">
+			<div class="card"><p><b style="color: var(--text);">First-seen index.</b> A 32-shard index of every posting powers "new since your last check" and closed detection.</p></div>
+			<div class="card"><p><b style="color: var(--text);">Marks that expire.</b> Seen (45 days), hidden (90 days) and reminders with expiry, listed with SCAN.</p></div>
+			<div class="card"><p><b style="color: var(--text);">A lock.</b> SET NX with a 120-second expiry so two tabs never rebuild the index at once.</p></div>
+			<div class="card"><p><b style="color: var(--text);">A cache.</b> Job descriptions and fit explanations kept for 7 days, in front of Firecrawl and the LLM.</p></div>
+			<div class="card"><p><b style="color: var(--text);">Counters.</b> INCR for daily new-posting stats and applications per week.</p></div>
+			<div class="card"><p><b style="color: var(--text);">Agent memory.</b> A daily digest the assistant reads, and a namespace where it saves your reminders and notes.</p></div>
+		</div>
+	</div>
+</section>
+
+<section id="roadmap">
+	<div class="wrap">
+		<h2>Roadmap</h2>
+		<p class="sub">Where JobRadar is today, and what comes next. The first column is about making what exists dependable; the later ones make it more useful and take it beyond one laptop.</p>
+		<div class="roadmap">
+			<div class="phase">
+				<div class="phase-top"><h3>Now</h3><span class="when">Done Nov 19</span></div>
+				<p class="goal">Make the demo dependable for daily use.</p>
+				<div class="item"><span class="status done">Fixed</span><b>Closed alerts only when it is really closed</b><span>A job is marked closed only when a source that answered lists it as closed, or a watched board no longer has that posting's ID. A failed fetch, a level turned off or an unwatched company no longer counts as closed. A posting that comes back is reopened.</span></div>
+				<div class="item"><span class="status done">Fixed</span><b>New survives a page reload</b><span>A visit now lasts until the app has been closed for 2 hours, so reloading or opening a second tab keeps New.</span></div>
+				<div class="item"><span class="status done">Fixed</span><b>Fewer false repost and merge flags</b><span>"(Backend)" and "(Frontend)" stay separate cards. Rows posted together, and last year's run of an annual program, no longer count as reposts. False repost flags dropped by a third.</span></div>
+				<div class="item"><span class="status done">Fixed</span><b>Source fallback</b><span>Simplify renamed its list to Summer2027-Internships; JobRadar now tries each season's name in turn and says clearly if none load.</span></div>
+				<div class="item"><span class="status done">Tested</span><b>Every remaining path</b><span>Lever boards, cover notes, Mark all seen, removing from the tracker, Offer and Closed, closed alerts. Two small UI bugs found and fixed along the way.</span></div>
+			</div>
+			<div class="phase">
+				<div class="phase-top"><h3>Next</h3><span class="when">2 to 4 weeks</span></div>
+				<p class="goal">Better answers, less waiting.</p>
+				<div class="item"><span class="status feat">Feature</span><b>Real skill matching</b><span>Fetch descriptions for the top matches in the background so skill scores use the full posting, not just the title.</span></div>
+				<div class="item"><span class="status feat">Feature</span><b>More job sites</b><span>Workday and other company sites through Firecrawl, tested end to end.</span></div>
+				<div class="item"><span class="status feat">Feature</span><b>Faster, live assistant</b><span>Read live tracker data through tools instead of a daily snapshot, and stream replies.</span></div>
+				<div class="item"><span class="status feat">Feature</span><b>Keep your data</b><span>Turn on Redis persistence so the tracker survives a container restart, plus CSV export.</span></div>
+				<div class="item"><span class="status feat">Feature</span><b>Weekly review</b><span>A short weekly summary: applied, responses, what is going stale, what to follow up.</span></div>
+			</div>
+			<div class="phase">
+				<div class="phase-top"><h3>Later</h3><span class="when">Platform</span></div>
+				<p class="goal">From one laptop to anyone.</p>
+				<div class="item"><span class="status plat">Platform</span><b>Sign-in and multiple users</b><span>Use the Auth0 node for sign-in and give each user their own Redis namespace, replacing the single built-in user.</span></div>
+				<div class="item"><span class="status plat">Platform</span><b>Scan while the app is closed</b><span>A scheduled pipeline that checks sources and stores new matches, so alerts no longer need the app open.</span></div>
+				<div class="item"><span class="status plat">Platform</span><b>Email sync</b><span>Read recruiter emails to move tracker cards to Interview or Closed automatically.</span></div>
+				<div class="item"><span class="status plat">Platform</span><b>Deploy and publish</b><span>Ship JobRadar to a hosted RocketRide server once the Redis node is in a released engine.</span></div>
+			</div>
+		</div>
+		<div class="card shipped">
+			<h3>Already shipped</h3>
+			<ul>
+				<li>Dashboard with New, picks, follow-ups and pipeline</li>
+				<li>Jobs inbox with New, All matches and Hidden</li>
+				<li>Duplicate merging across sources</li>
+				<li>Repost and stale detection</li>
+				<li>Transparent scoring with reasons</li>
+				<li>Sponsorship as a hard filter</li>
+				<li>Resume import with Gemini</li>
+				<li>Explain fit, cover note and follow-up drafts</li>
+				<li>Tracker board with automatic reminders</li>
+				<li>Assistant with Redis memory and notes</li>
+				<li>Watched Greenhouse, Lever and Ashby boards</li>
+				<li>Notifications every 10 minutes while open</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<section id="demo">
+	<div class="wrap">
+		<h2>Four-minute demo</h2>
+		<p class="sub">Run on a local RocketRide engine with Redis in Docker.</p>
+		<div class="card">
+			<ol class="demo">
+				<li><b>Profile and sources:</b> drop a resume, or press <b>Try it with a sample resume</b>. The profile appears in seconds and the first check runs.</li>
+				<li><b>Watch a company:</b> add <code>ramp</code> or <code>scaleai</code>. Their postings pop up as new matches.</li>
+				<li><b>Dashboard:</b> show what is new since the last check, today's picks, and the stale count.</li>
+				<li>Open a job and press <b>Explain fit</b>: requirements paired with resume evidence, and honest gaps.</li>
+				<li><b>Save</b>, then <b>Mark applied</b>. The tracker shows the follow-up reminder; <b>Drafts</b> writes the follow-up email.</li>
+				<li><b>Assistant:</b> "Which applications should I follow up on?", then "Remind me to prep for Ramp on Friday". The reminder appears in the tracker.</li>
+				<li>To show the "new posting" moment again: <b>Profile and sources → Replay the last 24 hours as new</b>.</li>
+			</ol>
+		</div>
+	</div>
+</section>
+
+<footer>
+	<div class="wrap">JobRadar · a RocketRide app using the Redis, Firecrawl and Gemini nodes · November 2026</div>
+</footer>
+
+</body>
+</html>
