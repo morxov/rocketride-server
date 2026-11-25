@@ -3,12 +3,13 @@
  */
 
 import React from 'react';
-import { Banner, Button, Card, ContentHeader, EmptyState, StatusBadge } from 'shell';
+import { Banner, Button, EmptyState, StatusBadge } from 'shell';
 import { useJobActions } from '../actions';
 import { ago } from '../lib/match';
 import { STATUSES, localDate } from '../lib/store';
 import { useApp } from '../state';
-import { JobRow, Tile, s } from '../ui';
+import { Panel as Card, PageHeader as ContentHeader, JobRow, Tile, s } from '../ui';
+import { Icon } from '../icons';
 
 const st: Record<string, React.CSSProperties> = {
 	funnel: { display: 'flex', gap: 6, alignItems: 'flex-end', height: 90, padding: '4px 2px' },
@@ -49,19 +50,37 @@ export const Dashboard: React.FC = () => {
 	const maxCount = Math.max(1, ...counts.map((c) => c.n));
 
 	return (
-		<div style={s.page}>
-			<div style={s.inner}>
+		<div className="jr-dashboard-page" style={s.page}>
+			<div className="jr-dashboard-backdrop" />
+			<div className="jr-dashboard-inner" style={s.inner}>
 				<ContentHeader
-					title={user.profile?.name ? `Hi ${user.profile.name.split(' ')[0]}` : 'Dashboard'}
-					subtitle={result ? `Last checked ${ago(result.at)} · ${result.scanned.toLocaleString()} postings from ${user.prefs.levels.length + user.prefs.watched.length} ${user.prefs.levels.length + user.prefs.watched.length === 1 ? 'source' : 'sources'} · checks again every 10 minutes while open` : status || 'Checking sources...'}
+					title={user.profile?.name ? `Welcome, ${user.profile.name.split(' ')[0]}` : 'Welcome to JobRadar'}
+					subtitle={result ? `Last checked ${ago(result.at)} · ${result.scanned.toLocaleString()} postings checked · automatically refreshed every 10 minutes while open` : status || 'Fresh opportunities and a clear plan for what comes next.'}
 					actions={
 						<Button small disabled={refreshing} onClick={() => void app.refreshNow()}>
+							<Icon name="refresh" size={14} />
 							{refreshing ? 'Checking...' : 'Check now'}
 						</Button>
 					}
 				/>
 				<div style={s.stack}>
 					{error && <Banner variant="error">{error}</Banner>}
+					{user.profile && (
+						<section className="jr-search-summary">
+							<div>
+								<h2>{fresh.length ? `${fresh.length} new ${fresh.length === 1 ? 'match' : 'matches'} for you` : 'Your job matches are ready to explore'}</h2>
+								<p>Matched to your experience, with clear reasons for every recommendation.</p>
+							</div>
+							<div className="jr-summary-actions">
+								<Button variant="ghost" onClick={() => app.setView('profile')}>
+									Match preferences
+								</Button>
+								<Button onClick={() => app.setView('jobs')}>
+									View all matches <Icon name="arrow" size={16} />
+								</Button>
+							</div>
+						</section>
+					)}
 					{!user.profile && (
 						<Banner variant="info">
 							<div style={s.row}>
@@ -72,20 +91,22 @@ export const Dashboard: React.FC = () => {
 							</div>
 						</Banner>
 					)}
-					{closedAlerts.filter((c) => user.tracker.some((t) => t.fp === c.fp && t.outcome === 'posting_closed')).map((c) => (
-						<Banner key={c.fp} variant="warning">
-							<div style={s.row}>
-								<span>
-									{c.title} at {c.company} is no longer listed on any source. If you have not heard back, it may have been filled.
-								</span>
-								<Button variant="ghost" small onClick={() => app.dismissClosed(c.fp)}>
-									Dismiss
-								</Button>
-							</div>
-						</Banner>
-					))}
+					{closedAlerts
+						.filter((c) => user.tracker.some((t) => t.fp === c.fp && t.outcome === 'posting_closed'))
+						.map((c) => (
+							<Banner key={c.fp} variant="warning">
+								<div style={s.row}>
+									<span>
+										{c.title} at {c.company} is no longer listed on any source. If you have not heard back, it may have been filled.
+									</span>
+									<Button variant="ghost" small onClick={() => app.dismissClosed(c.fp)}>
+										Dismiss
+									</Button>
+								</div>
+							</Banner>
+						))}
 
-					<div style={s.tiles}>
+					<div className="jr-metrics" style={s.tiles}>
 						<Tile label="New for you" value={fresh.length} note={`since ${ago(since)}`} onClick={() => app.setView('jobs')} />
 						<Tile label="Follow-ups due" value={due.length} note={upcoming.length ? `next ${upcoming[0].due}` : 'nothing scheduled'} onClick={() => app.setView('tracker')} />
 						<Tile label="Active applications" value={active.filter((t) => t.status !== 'saved').length} note={`${user.tracker.filter((t) => t.status === 'saved').length} saved to apply`} onClick={() => app.setView('tracker')} />
@@ -94,7 +115,7 @@ export const Dashboard: React.FC = () => {
 						<Tile label="Likely stale" value={stale} note="reposted or open too long, ranked lower" />
 					</div>
 
-					<div style={s.grid2}>
+					<div className="jr-dashboard-columns">
 						<Card
 							header={`New since your last check (${fresh.length})`}
 							headerActions={
@@ -152,7 +173,14 @@ export const Dashboard: React.FC = () => {
 									))
 								)}
 							</Card>
-							<Card header="Pipeline" headerActions={<Button variant="ghost" small onClick={() => app.setView('tracker')}>Open tracker</Button>}>
+							<Card
+								header="Application progress"
+								headerActions={
+									<Button variant="ghost" small onClick={() => app.setView('tracker')}>
+										Open tracker
+									</Button>
+								}
+							>
 								<div style={st.funnel}>
 									{counts.map((c) => (
 										<div key={c.id} style={st.barCol}>

@@ -2,7 +2,7 @@
  * Job details drawer: description, fit explanation, drafts, tracker actions.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { Banner, Button, DetailPanel, LabelValue, MarkdownRenderer, PanelTabBody, Section, StatusBadge } from 'shell';
 import { useJobActions } from '../actions';
 import { profileFacts, write } from '../lib/ai';
@@ -12,6 +12,7 @@ import { fetchAtsDescription } from '../lib/sources';
 import { STATUSES, cacheDescription, cacheFit, cachedDescription, cachedFit, updateTrackItem, type Status, type TrackItem, localDate } from '../lib/store';
 import { toast, useApp } from '../state';
 import { JobFlags, s, scoreColor } from '../ui';
+import { Icon } from '../icons';
 
 type Tab = 'overview' | 'fit' | 'write' | 'track';
 
@@ -28,7 +29,57 @@ function fromTrack(t: TrackItem): ScoredJob {
 	return { fp: t.fp, title: t.title, company: t.company, url: t.url, locations: t.location ? [t.location] : [], posted: t.createdAt, firstPosted: t.createdAt, postCount: 1, level: 'intern', remote: false, sources: [{ label: 'Tracker', url: t.url }], score: 0, reasons: [], warnings: t.outcome === 'posting_closed' ? ['Posting is no longer listed'] : [], flags: [], firstSeen: t.createdAt };
 }
 
-export const JobPanel: React.FC = () => {
+/** The same job actions appear in the job board's split view and other screens' drawer. */
+const JobFrame: React.FC<React.ComponentProps<typeof DetailPanel> & { embedded?: boolean }> = ({ embedded, ...props }) => {
+	const detailId = useId();
+	if (!embedded) return <DetailPanel {...props} />;
+	return (
+		<section className="jr-detail" aria-label="Job details">
+			<div className="jr-detail-heading">
+				<span className="jr-company">
+					<Icon name="jobs" />
+				</span>
+				<div>
+					<h2>{props.title}</h2>
+					<p>{props.subtitle}</p>
+				</div>
+				<button type="button" className="jr-detail-close" onClick={props.onClose} aria-label="Close job details">
+					×
+				</button>
+			</div>
+			<div className="jr-detail-tabs" role="tablist" aria-label="Job details">
+				{props.tabs?.map((tab, index) => (
+					<button
+						key={tab.id}
+						type="button"
+						role="tab"
+						id={`${detailId}-${tab.id}`}
+						aria-controls={`${detailId}-panel`}
+						aria-selected={props.activeTab === tab.id}
+						tabIndex={props.activeTab === tab.id ? 0 : -1}
+						onClick={() => props.onTabSelect?.(tab.id)}
+						onKeyDown={(event) => {
+							const tabs = props.tabs ?? [];
+							if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+							event.preventDefault();
+							const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+							props.onTabSelect?.(tabs[next].id);
+							event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+						}}
+					>
+						{tab.label}
+					</button>
+				))}
+			</div>
+			<div className="jr-detail-body" role="tabpanel" id={`${detailId}-panel`} aria-labelledby={`${detailId}-${props.activeTab}`} tabIndex={0}>
+				{props.children}
+			</div>
+			<div className="jr-detail-footer">{props.footer}</div>
+		</section>
+	);
+};
+
+export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 	const app = useApp();
 	const { setStatus, hide, seen } = useJobActions();
 	const { client, user, jobs, openFp } = app;
@@ -51,11 +102,18 @@ export const JobPanel: React.FC = () => {
 		setNotes(tracked?.notes ?? '');
 		if (!openFp || !client) return;
 		void seen(openFp);
-		void cachedFit(client, openFp).then((f) => f && setFit(f)).catch(() => undefined);
+		void cachedFit(client, openFp)
+			.then((f) => f && setFit(f))
+			.catch(() => undefined);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [openFp, client]);
 
-	if (!job || !user || !client) return <DetailPanel open={false} title="" onClose={() => app.openJob(null)}>{null}</DetailPanel>;
+	if (!job || !user || !client)
+		return (
+			<DetailPanel open={false} title="" onClose={() => app.openJob(null)}>
+				{null}
+			</DetailPanel>
+		);
 
 	/** Description: ATS API first, then the Redis cache, then Firecrawl (cached for 7 days). */
 	const loadDescription = async (): Promise<string> => {
@@ -134,7 +192,8 @@ export const JobPanel: React.FC = () => {
 	];
 
 	return (
-		<DetailPanel
+		<JobFrame
+			embedded={embedded}
 			open
 			title={job.title}
 			subtitle={`${job.company}${job.locations.length ? ` · ${job.locations.slice(0, 3).join(', ')}` : ''}`}
@@ -151,15 +210,17 @@ export const JobPanel: React.FC = () => {
 						Open posting
 					</Button>
 					{!tracked && (
-						<Button variant="ghost" onClick={() => { void hide(job); app.openJob(null); }}>
+						<Button
+							variant="ghost"
+							onClick={() => {
+								void hide(job);
+								app.openJob(null);
+							}}
+						>
 							Hide
 						</Button>
 					)}
-					{!tracked ? (
-						<Button onClick={() => void setStatus(job, 'saved')}>Save to tracker</Button>
-					) : tracked.status === 'saved' ? (
-						<Button onClick={() => void setStatus(job, 'applied')}>Mark applied</Button>
-					) : null}
+					{!tracked ? <Button onClick={() => void setStatus(job, 'saved')}>Save to tracker</Button> : tracked.status === 'saved' ? <Button onClick={() => void setStatus(job, 'applied')}>Mark applied</Button> : null}
 				</>
 			}
 		>
@@ -171,14 +232,18 @@ export const JobPanel: React.FC = () => {
 					{job.reasons.length > 0 && (
 						<Section label="Why it matches">
 							<ul style={ps.list}>
-								{job.reasons.map((r) => <li key={r}>{r}</li>)}
+								{job.reasons.map((r) => (
+									<li key={r}>{r}</li>
+								))}
 							</ul>
 						</Section>
 					)}
 					{job.warnings.length > 0 && (
 						<Section label="Watch out">
 							<ul style={{ ...ps.list, color: 'var(--rr-color-warning)' }}>
-								{job.warnings.map((r) => <li key={r}>{r}</li>)}
+								{job.warnings.map((r) => (
+									<li key={r}>{r}</li>
+								))}
 							</ul>
 						</Section>
 					)}
@@ -195,7 +260,9 @@ export const JobPanel: React.FC = () => {
 							{job.sources.map((src, i) => (
 								<span key={src.url}>
 									{i > 0 && ' · '}
-									<a style={s.link} href={src.url} target="_blank" rel="noreferrer">{src.label}</a>
+									<a style={s.link} href={src.url} target="_blank" rel="noreferrer">
+										{src.label}
+									</a>
 								</span>
 							))}
 						</LabelValue>
@@ -246,7 +313,9 @@ export const JobPanel: React.FC = () => {
 						<>
 							<pre style={s.pre}>{draft.text}</pre>
 							<div style={{ ...s.row, marginTop: 8 }}>
-								<Button variant="secondary" small onClick={() => copy(draft.text)}>Copy</Button>
+								<Button variant="secondary" small onClick={() => copy(draft.text)}>
+									Copy
+								</Button>
 								<span style={s.small}>JobRadar never sends anything for you.</span>
 							</div>
 						</>
@@ -291,6 +360,6 @@ export const JobPanel: React.FC = () => {
 					)}
 				</PanelTabBody>
 			)}
-		</DetailPanel>
+		</JobFrame>
 	);
 };

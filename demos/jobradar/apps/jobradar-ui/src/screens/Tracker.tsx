@@ -3,18 +3,18 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Card, ConfirmDialog, ContentHeader, EmptyState, StatusBadge } from 'shell';
+import { Button, ConfirmDialog, EmptyState, StatusBadge } from 'shell';
 import { useJobActions } from '../actions';
 import { ago } from '../lib/match';
 import { STATUSES, dismissReminder, snoozeReminder, type Reminder, type TrackItem, localDate } from '../lib/store';
 import { toast, useApp } from '../state';
-import { s } from '../ui';
+import { Panel as Card, PageHeader as ContentHeader, s } from '../ui';
 
 const tk: Record<string, React.CSSProperties> = {
-	board: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, paddingBottom: 6 },
-	col: { background: 'var(--rr-bg-surface)', border: '1px solid var(--rr-border)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 160 },
+	board: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 14, paddingBottom: 6 },
+	col: { background: 'var(--rr-bg-surface-alt)', border: '1px solid var(--rr-border)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 220 },
 	colHead: { display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--rr-text-secondary)', padding: '2px 4px' },
-	card: { background: 'var(--rr-bg-paper)', border: '1px solid var(--rr-border)', borderRadius: 6, padding: '8px 9px', cursor: 'pointer' },
+	card: { background: 'var(--rr-bg-paper)', border: '1px solid var(--rr-border)', borderRadius: 9, padding: '13px', cursor: 'pointer' },
 	cardTitle: { fontSize: 12.5, fontWeight: 600, lineHeight: 1.3 },
 	cardMeta: { fontSize: 11.5, color: 'var(--rr-text-secondary)', marginTop: 2 },
 	cardRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 4 },
@@ -50,10 +50,18 @@ export const Tracker: React.FC = () => {
 	return (
 		<div style={s.page}>
 			<div style={s.inner}>
-				<ContentHeader title="Tracker" subtitle="Every job you are pursuing. Moving a job to Applied sets a follow-up reminder for a week later; Interview sets a thank-you reminder." />
+				<ContentHeader title="Job Tracker" subtitle="Every application, follow-up, and reminder in one place. Save a role to start, then update it as you go." />
 				<div style={s.stack}>
 					{user.tracker.length === 0 ? (
-						<EmptyState title="Nothing tracked yet" description="Save a job from the dashboard or the Jobs screen and it lands here." action={<Button small onClick={() => app.setView('jobs')}>Find jobs</Button>} />
+						<EmptyState
+							title="Nothing tracked yet"
+							description="Save a job from the dashboard or the Jobs screen and it lands here."
+							action={
+								<Button small onClick={() => app.setView('jobs')}>
+									Find jobs
+								</Button>
+							}
+						/>
 					) : (
 						<div style={tk.board}>
 							{STATUSES.map((col, ci) => {
@@ -67,18 +75,34 @@ export const Tracker: React.FC = () => {
 										{items.map((t) => {
 											const r = reminderFor(t.fp);
 											return (
-												<div key={t.fp} style={tk.card} onClick={() => app.openJob(t.fp)}>
-													<div style={tk.cardTitle}>{t.title}</div>
-													<div style={tk.cardMeta}>{t.company}</div>
-													<div style={tk.cardMeta}>{t.appliedAt ? `Applied ${ago(t.appliedAt)}` : `Added ${ago(t.createdAt)}`}</div>
-													{t.outcome === 'posting_closed' && <div style={{ marginTop: 4 }}><StatusBadge variant="warning">Posting closed</StatusBadge></div>}
-													{r && <div style={{ marginTop: 4 }}><StatusBadge variant={r.due <= todayIso ? 'warning' : 'muted'}>{r.due <= todayIso ? 'Reminder due' : `Reminder ${r.due}`}</StatusBadge></div>}
+												<div key={t.fp} style={tk.card}>
+													<button type="button" className="jr-track-open" onClick={() => app.openJob(t.fp)} aria-label={`View ${t.title} at ${t.company}`}>
+														<div style={tk.cardTitle}>{t.title}</div>
+														<div style={tk.cardMeta}>{t.company}</div>
+														<div style={tk.cardMeta}>{t.appliedAt ? `Applied ${ago(t.appliedAt)}` : `Added ${ago(t.createdAt)}`}</div>
+													</button>
+													{t.outcome === 'posting_closed' && (
+														<div style={{ marginTop: 4 }}>
+															<StatusBadge variant="warning">Posting closed</StatusBadge>
+														</div>
+													)}
+													{r && (
+														<div style={{ marginTop: 4 }}>
+															<StatusBadge variant={r.due <= todayIso ? 'warning' : 'muted'}>{r.due <= todayIso ? 'Reminder due' : `Reminder ${r.due}`}</StatusBadge>
+														</div>
+													)}
 													<div style={tk.cardRow} onClick={(e) => e.stopPropagation()}>
 														<div style={tk.move}>
-															<Button variant="ghost" mini disabled={ci === 0} onClick={() => move(t, -1)} title="Move left">{'<'}</Button>
-															<Button variant="ghost" mini disabled={ci === STATUSES.length - 1} onClick={() => move(t, 1)} title="Move right">{'>'}</Button>
+															<Button variant="ghost" mini disabled={ci === 0} onClick={() => move(t, -1)} title="Move left">
+																{'<'}
+															</Button>
+															<Button variant="ghost" mini disabled={ci === STATUSES.length - 1} onClick={() => move(t, 1)} title="Move right">
+																{'>'}
+															</Button>
 														</div>
-														<Button variant="ghost" mini onClick={() => setRemoving(t)} title="Stop tracking">Remove</Button>
+														<Button variant="ghost" mini onClick={() => setRemoving(t)} title="Stop tracking">
+															Remove
+														</Button>
 													</div>
 												</div>
 											);
@@ -98,12 +122,18 @@ export const Tracker: React.FC = () => {
 									<div key={r.id} style={s.listRow}>
 										<div>
 											<div style={s.text}>{r.text}</div>
-											<div style={s.small}>{r.source === 'assistant' ? 'Saved by the assistant' : 'Automatic follow-up'} · due {r.due}</div>
+											<div style={s.small}>
+												{r.source === 'assistant' ? 'Saved by the assistant' : 'Automatic follow-up'} · due {r.due}
+											</div>
 										</div>
 										<div style={s.row}>
 											{r.due <= todayIso && <StatusBadge variant="warning">Due</StatusBadge>}
-											<Button variant="ghost" small onClick={() => void snooze(r, 3)}>Snooze 3d</Button>
-											<Button variant="secondary" small onClick={() => void done(r)}>Done</Button>
+											<Button variant="ghost" small onClick={() => void snooze(r, 3)}>
+												Snooze 3d
+											</Button>
+											<Button variant="secondary" small onClick={() => void done(r)}>
+												Done
+											</Button>
 										</div>
 									</div>
 								))
@@ -116,7 +146,9 @@ export const Tracker: React.FC = () => {
 								user.notes.map((n) => (
 									<div key={n.id} style={s.listRow}>
 										<span style={s.text}>{n.text}</span>
-										<Button variant="ghost" small onClick={() => void done({ id: n.id, text: n.text, due: '', source: 'assistant' })}>Delete</Button>
+										<Button variant="ghost" small onClick={() => void done({ id: n.id, text: n.text, due: '', source: 'assistant' })}>
+											Delete
+										</Button>
 									</div>
 								))
 							)}

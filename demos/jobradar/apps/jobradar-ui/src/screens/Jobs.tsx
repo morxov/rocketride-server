@@ -3,11 +3,13 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Banner, Button, Card, ContentHeader, EmptyState, InputField, TabControl, ToggleGroup, useDebouncedValue } from 'shell';
+import { Banner, Button, EmptyState, InputField, TabControl, ToggleGroup, useDebouncedValue } from 'shell';
 import { useJobActions } from '../actions';
 import type { ScoredJob } from '../lib/match';
 import { useApp } from '../state';
-import { JobRow, s } from '../ui';
+import { Panel as Card, PageHeader as ContentHeader, JobRow, s } from '../ui';
+import { JobPanel } from './JobPanel';
+import { Icon } from '../icons';
 
 type Tab = 'new' | 'all' | 'hidden';
 type Sort = 'score' | 'newest';
@@ -61,17 +63,10 @@ export const Jobs: React.FC = () => {
 
 	return (
 		<div style={s.page}>
-			<TabControl menu={menu} activeId={tab} onSelect={(id) => { setTab(id as Tab); setLimit(PAGE); }} />
 			<div style={s.inner}>
 				<ContentHeader
 					title={tab === 'new' ? 'New for you' : tab === 'all' ? 'All matches' : 'Hidden'}
-					subtitle={
-						tab === 'new'
-							? 'Only postings JobRadar first saw since your last check. Open one, save it, or hide it and it leaves this list.'
-							: tab === 'all'
-								? `Every open match above your score threshold (${user.prefs.minScore}), duplicates merged, not yet tracked.`
-								: 'Jobs you hid. They stay hidden for 90 days.'
-					}
+					subtitle={tab === 'new' ? 'Only postings JobRadar first saw since your last check. Open one, save it, or hide it and it leaves this list.' : tab === 'all' ? `Every open match above your score threshold (${user.prefs.minScore}), duplicates merged, not yet tracked.` : 'Jobs you hid. They stay hidden for 90 days.'}
 					actions={
 						<div style={s.row}>
 							{tab === 'new' && lists.new.length > 0 && (
@@ -85,14 +80,37 @@ export const Jobs: React.FC = () => {
 						</div>
 					}
 				/>
+				<TabControl
+					menu={menu}
+					activeId={tab}
+					onSelect={(id) => {
+						setTab(id as Tab);
+						setLimit(PAGE);
+					}}
+				/>
 				<div style={s.stack}>
 					{!user.profile && <Banner variant="info">Scores are rough until you add a resume on the Profile screen.</Banner>}
-					<div style={s.row}>
+					<div className="jr-filters">
 						<div style={{ width: 260 }}>
-							<InputField placeholder="Search title, company, city" value={query} onChange={(e) => setQuery(e.target.value)} />
+							<InputField aria-label="Search jobs" placeholder="Search title, company, city" value={query} onChange={(e) => setQuery(e.target.value)} />
 						</div>
-						<ToggleGroup options={[{ id: 'score', label: 'Best fit' }, { id: 'newest', label: 'Newest' }]} value={sort} onChange={(v) => setSort(v as Sort)} />
-						<ToggleGroup options={[{ id: 'any', label: 'Any age' }, { id: '3', label: '3 days' }, { id: '7', label: '7 days' }]} value={fresh} onChange={(v) => setFresh(v as typeof fresh)} />
+						<ToggleGroup
+							options={[
+								{ id: 'score', label: 'Best fit' },
+								{ id: 'newest', label: 'Newest' },
+							]}
+							value={sort}
+							onChange={(v) => setSort(v as Sort)}
+						/>
+						<ToggleGroup
+							options={[
+								{ id: 'any', label: 'Any age' },
+								{ id: '3', label: '3 days' },
+								{ id: '7', label: '7 days' },
+							]}
+							value={fresh}
+							onChange={(v) => setFresh(v as typeof fresh)}
+						/>
 						<Button variant={remoteOnly ? 'primary' : 'secondary'} small pressed={remoteOnly} onClick={() => setRemoteOnly(!remoteOnly)}>
 							Remote only
 						</Button>
@@ -100,51 +118,71 @@ export const Jobs: React.FC = () => {
 							Hide stale
 						</Button>
 					</div>
-					<Card header={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}`} noBodyPadding>
-						{shown.length === 0 ? (
-							<EmptyState
-								title={tab === 'new' ? 'Nothing new right now' : 'No jobs here'}
-								description={tab === 'new' ? 'You will get a notification when a new match appears. Browse older matches under All matches.' : 'Try clearing the search or filters.'}
-								action={tab === 'new' ? <Button small onClick={() => setTab('all')}>Browse all matches</Button> : undefined}
-							/>
-						) : (
-							<>
-								{shown.slice(0, limit).map((j) => (
-									<JobRow
-										key={j.fp}
-										job={j}
-										onOpen={() => app.openJob(j.fp)}
-										actions={
-											tab === 'hidden' ? (
-												<Button variant="secondary" small onClick={() => void unhide(j)}>
-													Unhide
+					<div className={`jr-jobs-layout${app.openFp ? ' jr-jobs-layout--selected' : ''}`}>
+						<div className="jr-jobs-list">
+							<Card header={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}`} noBodyPadding>
+								{shown.length === 0 ? (
+									<EmptyState
+										title={tab === 'new' ? 'Nothing new right now' : 'No jobs here'}
+										description={tab === 'new' ? 'You will get a notification when a new match appears. Browse older matches under All matches.' : 'Try clearing the search or filters.'}
+										action={
+											tab === 'new' ? (
+												<Button small onClick={() => setTab('all')}>
+													Browse all matches
 												</Button>
-											) : (
-												<>
-													<Button variant="secondary" small onClick={() => void setStatus(j, 'saved')}>
-														Save
-													</Button>
-													<Button variant="secondary" small onClick={() => void setStatus(j, 'applied')}>
-														Applied
-													</Button>
-													<Button variant="ghost" small onClick={() => void hide(j)}>
-														Hide
-													</Button>
-												</>
-											)
+											) : undefined
 										}
 									/>
-								))}
-								{shown.length > limit && (
-									<div style={{ padding: 12 }}>
-										<Button variant="ghost" small onClick={() => setLimit(limit + PAGE)}>
-											Show {Math.min(PAGE, shown.length - limit)} more
-										</Button>
-									</div>
+								) : (
+									<>
+										{shown.slice(0, limit).map((j) => (
+											<JobRow
+												key={j.fp}
+												job={j}
+												selected={app.openFp === j.fp}
+												onOpen={() => app.openJob(j.fp)}
+												actions={
+													tab === 'hidden' ? (
+														<Button variant="secondary" small onClick={() => void unhide(j)}>
+															Unhide
+														</Button>
+													) : (
+														<>
+															<Button variant="secondary" small onClick={() => void setStatus(j, 'saved')}>
+																Save
+															</Button>
+															<Button variant="secondary" small onClick={() => void setStatus(j, 'applied')}>
+																Applied
+															</Button>
+															<Button variant="ghost" small onClick={() => void hide(j)}>
+																Hide
+															</Button>
+														</>
+													)
+												}
+											/>
+										))}
+										{shown.length > limit && (
+											<div style={{ padding: 12 }}>
+												<Button variant="ghost" small onClick={() => setLimit(limit + PAGE)}>
+													Show {Math.min(PAGE, shown.length - limit)} more
+												</Button>
+											</div>
+										)}
+									</>
 								)}
-							</>
+							</Card>
+						</div>
+						{app.openFp ? (
+							<JobPanel embedded />
+						) : (
+							<section className="jr-detail jr-detail-empty">
+								<Icon name="jobs" size={34} />
+								<h2>Find your next opportunity</h2>
+								<p>Select a job to see why it matches, explore the posting, and plan your next step.</p>
+							</section>
 						)}
-					</Card>
+					</div>
 				</div>
 			</div>
 		</div>

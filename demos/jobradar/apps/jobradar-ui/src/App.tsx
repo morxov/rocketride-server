@@ -11,7 +11,7 @@
 
 import React from 'react';
 import type { ShellAppProps } from 'shell';
-import { AppLayout, Banner, SidebarMenu } from 'shell';
+import { AppLayout, Banner } from 'shell';
 import { Assistant } from './screens/Assistant';
 import { Dashboard } from './screens/Dashboard';
 import { JobPanel } from './screens/JobPanel';
@@ -21,32 +21,74 @@ import { Tracker } from './screens/Tracker';
 import { localDate } from './lib/store';
 import { Poller, useApp, type View } from './state';
 import { Toasts } from './ui';
+import { Brand, Icon, type IconName } from './icons';
+import './design.css';
 
 const styles: Record<string, React.CSSProperties> = {
-	nav: { padding: '10px 8px' },
-	content: { position: 'relative', height: '100%', overflow: 'hidden', background: 'var(--rr-bg-default)' },
+	content: { position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--rr-bg-default)' },
 	status: { fontSize: 12, color: 'var(--rr-text-secondary)' },
 };
 
-const SidebarNav: React.FC = () => {
-	const { view, setView, jobs, user } = useApp();
+const TopNav: React.FC = () => {
+	const { view, setView, jobs, user, openJob } = useApp();
 	const min = user?.prefs.minScore ?? 45;
 	const fresh = user ? jobs.filter((j) => j.flags.includes('new') && j.score >= min && !user.hidden.has(j.fp)).length : 0;
 	const todayIso = localDate();
 	const due = user?.reminders.filter((r) => r.due <= todayIso).length ?? 0;
-	const menu = {
-		entries: [
-			{ id: 'dashboard', label: 'Dashboard' },
-			{ id: 'jobs', label: 'Jobs', count: fresh || undefined },
-			{ id: 'tracker', label: 'Tracker', count: due || undefined, severity: due ? ('error' as const) : undefined },
-			{ id: 'assistant', label: 'Assistant' },
-			{ id: 'profile', label: 'Profile and sources' },
-		],
-	};
+	const entries: { id: View; label: string; icon: IconName; count?: number }[] = [
+		{ id: 'dashboard', label: 'Home', icon: 'dashboard' },
+		{ id: 'jobs', label: 'Job Matches', icon: 'jobs', count: fresh },
+		{ id: 'tracker', label: 'Job Tracker', icon: 'tracker', count: due },
+		{ id: 'assistant', label: 'Assistant', icon: 'assistant' },
+		{ id: 'profile', label: 'Profile', icon: 'profile' },
+	];
 	return (
-		<div style={styles.nav}>
-			<SidebarMenu menu={menu} activeId={view} onSelect={(id) => setView(id as View)} />
-		</div>
+		<header className="jr-topbar">
+			<button
+				type="button"
+				className="jr-home"
+				aria-label="JobRadar home"
+				onClick={() => {
+					openJob(null);
+					setView('dashboard');
+				}}
+			>
+				<Brand />
+			</button>
+			<nav className="jr-topnav" aria-label="JobRadar">
+				{entries.map((entry) => (
+					<button
+						key={entry.id}
+						type="button"
+						className="jr-nav-button"
+						aria-current={view === entry.id ? 'page' : undefined}
+						onClick={() => {
+							openJob(null);
+							setView(entry.id);
+						}}
+					>
+						<Icon name={entry.icon} size={17} />
+						<span>{entry.label}</span>
+						{!!entry.count && <span className="jr-nav-count">{entry.count}</span>}
+					</button>
+				))}
+			</nav>
+			<button
+				type="button"
+				className="jr-avatar"
+				aria-label="Open your profile"
+				onClick={() => {
+					openJob(null);
+					setView('profile');
+				}}
+			>
+				{user?.profile?.name
+					?.split(/\s+/)
+					.slice(0, 2)
+					.map((w) => w[0])
+					.join('') || 'JR'}
+			</button>
+		</header>
 	);
 };
 
@@ -58,29 +100,32 @@ const StatusSlot: React.FC = () => {
 const Content: React.FC = () => {
 	const { client, isConnected, view, toasts, openJob } = useApp();
 	return (
-		<div style={styles.content}>
-			{client && !isConnected && (
-				<div style={{ padding: 16 }}>
-					<Banner variant="warning">Not connected to the RocketRide engine. JobRadar resumes when the connection returns.</Banner>
+		<div className="jr-app" style={styles.content}>
+			<TopNav />
+			<div className="jr-content">
+				{client && !isConnected && (
+					<div style={{ padding: 16 }}>
+						<Banner variant="warning">Not connected to the RocketRide engine. JobRadar resumes when the connection returns.</Banner>
+					</div>
+				)}
+				<div style={{ height: '100%', display: view === 'dashboard' ? 'block' : 'none' }}>
+					<Dashboard />
 				</div>
-			)}
-			<div style={{ height: '100%', display: view === 'dashboard' ? 'block' : 'none' }}>
-				<Dashboard />
+				{view === 'jobs' && <Jobs />}
+				{view === 'tracker' && <Tracker />}
+				<div style={{ height: '100%', display: view === 'assistant' ? 'block' : 'none' }}>
+					<Assistant />
+				</div>
+				{view === 'profile' && <Profile />}
+				{view !== 'jobs' && <JobPanel />}
+				<Toasts toasts={toasts} onOpen={(fp) => openJob(fp)} />
 			</div>
-			{view === 'jobs' && <Jobs />}
-			{view === 'tracker' && <Tracker />}
-			<div style={{ height: '100%', display: view === 'assistant' ? 'block' : 'none' }}>
-				<Assistant />
-			</div>
-			{view === 'profile' && <Profile />}
-			<JobPanel />
-			<Toasts toasts={toasts} onOpen={(fp) => openJob(fp)} />
 		</div>
 	);
 };
 
 const App: React.FC<ShellAppProps> = () => (
-	<AppLayout sidebar={<SidebarNav />} status={<StatusSlot />}>
+	<AppLayout status={<StatusSlot />}>
 		<Poller />
 		<Content />
 	</AppLayout>

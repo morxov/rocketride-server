@@ -29,6 +29,30 @@ is **new** and worth your time, and keeps everything else out of the way.
 
 Sources are re-checked every 10 minutes while the app is open, and whenever you press **Check now**.
 
+## Interface
+
+The interface follows Simplify's product layout: white top navigation, a cyan
+dashboard welcome area, pastel summary cards, and a job list beside its selected
+role. The reference screens are published in Simplify's
+[dashboard guide](https://help.simplify.jobs/en/help/articles/6390631-navigate-your-dashboard)
+and [job board guide](https://help.simplify.jobs/en/articles/2830264-view-jobs-on-simplifys-job-board).
+
+![JobRadar dashboard using the fictional sample profile](assets/jobradar-desktop.jpg)
+
+- `src/design.css` owns the app-scoped palette, spacing, cards, and responsive
+  layouts. It does not change the shell's global theme.
+- `src/ui.tsx` provides the shared page header, panels, metric tiles, and job
+  cards. `src/icons.tsx` holds the JobRadar mark and interface icons.
+- `App.tsx` renders top navigation through a single `AppLayout`, with the shell's
+  connection status bar. The profile avatar opens Profile and sources.
+- `JobPanel` reuses the same actions and content in an embedded job-board view
+  and the existing drawer on other screens. At narrow widths, selecting a job
+  replaces the result list; closing the detail restores the list. Detail tabs
+  support arrow keys, Home, and End.
+- The sample resume is fictional. Importing it creates a local demo profile
+  and checks live job sources. Demo replay and reset actions are under the
+  collapsed **Demo and data controls** section on Profile and sources.
+
 ## RocketRide pipelines (`src/pipelines/`)
 
 | File | Nodes | Used for |

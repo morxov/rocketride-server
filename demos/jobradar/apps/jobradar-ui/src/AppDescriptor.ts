@@ -15,14 +15,16 @@
 // frozen-preview bug). Failed builds are covered by emitOnErrors: false in
 // rsbuild.config.mts.
 import 'react/jsx-dev-runtime';
+import { createElement } from 'react';
 
 import type { AppDescriptor } from 'shell';
 import App from './App';
+import { Brand, RadarMark } from './icons';
 
 const descriptor: AppDescriptor = {
 	id: 'local.jobradar',
 	name: 'JobRadar',
-	branding: { appName: 'JobRadar' },
+	branding: { appName: 'JobRadar', logo: createElement(Brand), logoCollapsed: createElement(RadarMark), hideAnnouncements: true },
 	app: App,
 };
 

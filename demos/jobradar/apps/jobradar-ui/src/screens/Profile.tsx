@@ -3,18 +3,19 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Banner, Button, Card, Chip, ChipAdd, ConfirmDialog, ContentHeader, DropZone, InputField, LabelValue, Section, StatusBadge, ToggleGroup } from 'shell';
+import { Button, Chip, ChipAdd, ConfirmDialog, DropZone, InputField, LabelValue, Section, StatusBadge, ToggleGroup } from 'shell';
 import { importResume, sampleResume } from '../lib/ai';
 import { DEFAULT_PREFS, prefsFromProfile, type Prefs, type Profile as ProfileT } from '../lib/match';
 import { detectBoard, SIMPLIFY_SOURCES, type Level } from '../lib/sources';
 import { replayRecent, resetAll, savePrefs, saveProfile, saveResume } from '../lib/store';
 import { toast, useApp } from '../state';
-import { s } from '../ui';
+import { Panel as Card, PageHeader as ContentHeader, s } from '../ui';
+import { Icon } from '../icons';
 
 const pr: Record<string, React.CSSProperties> = {
 	chips: { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' },
 	evidence: { margin: '2px 0 0', paddingLeft: 18, fontSize: 12.5, lineHeight: 1.5, color: 'var(--rr-text-secondary)' },
-	inline: { display: 'flex', gap: 8, alignItems: 'center' },
+	inline: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
 };
 
 /** Editable list of short strings: chips plus an inline add box. */
@@ -130,51 +131,97 @@ export const Profile: React.FC = () => {
 			<div style={s.inner}>
 				<ContentHeader
 					title="Profile and sources"
-					subtitle="What JobRadar looks for, and where. Your resume is stored only in your own Redis; only short excerpts go to the model when you ask for an explanation or a draft."
+					subtitle="Your experience, your preferences, your next opportunity. Fine-tune what comes your way."
 					actions={
-						<Button small disabled={!dirty} onClick={() => void savePrefsNow()}>
+						<Button disabled={!dirty} onClick={() => void savePrefsNow()}>
 							Save preferences
 						</Button>
 					}
 				/>
 				<div style={s.stack}>
-					{!p && <Banner variant="info">Start here: drop your resume. JobRadar builds your profile and scores every open internship and new-grad role against it.</Banner>}
-					<div style={s.grid2}>
-						<Card header="Resume">
+					{!p && (
+						<section className="jr-onboarding">
+							<div>
+								<h2>Less searching. More finding your fit.</h2>
+								<p>Add your resume and we’ll bring the relevant roles into focus, with clear reasons for every match.</p>
+								<ol className="jr-steps">
+									<li>
+										<span>1</span>Add your resume
+									</li>
+									<li>
+										<span>2</span>Set your preferences
+									</li>
+									<li>
+										<span>3</span>Explore your matches
+									</li>
+								</ol>
+							</div>
+							<div className="jr-signal" aria-hidden="true">
+								<div className="jr-signal-document">
+									<Icon name="file" size={28} />
+								</div>
+								<i className="jr-signal-dot" />
+							</div>
+						</section>
+					)}
+					<div className="jr-profile-grid">
+						<Card header="Your resume" headerActions={<span style={s.small}>{p ? 'Profile ready' : 'Start here'}</span>}>
 							{importing ? (
 								<div style={s.text}>Reading {importing}... this takes a few seconds.</div>
 							) : (
 								<>
-									<DropZone title={p ? 'Drop a new resume to update' : 'Drop your resume here'} hint="PDF, DOCX or TXT" onFiles={(f) => void onFiles(f)} />
+									<div className="jr-upload">
+										<DropZone title={p ? 'Drop a new resume to update' : 'Drop your resume here'} hint="or click to browse · PDF, DOCX or TXT" onFiles={(f) => void onFiles(f)} />
+									</div>
 									{!p && (
-										<div style={{ ...s.row, marginTop: 8 }}>
-											<Button variant="ghost" small onClick={() => void sampleResume().then((f) => { const dt = new DataTransfer(); dt.items.add(f); return onFiles(dt.files); }).catch((e) => toast({ variant: 'error', title: 'Sample failed', body: String(e) }))}>
-												Try it with a sample resume
+										<div className="jr-sample">
+											<Button
+												variant="ghost"
+												onClick={() =>
+													void sampleResume()
+														.then((f) => {
+															const dt = new DataTransfer();
+															dt.items.add(f);
+															return onFiles(dt.files);
+														})
+														.catch((e) => toast({ variant: 'error', title: 'Sample failed', body: String(e) }))
+												}
+											>
+												Try it with a sample resume <Icon name="arrow" size={15} />
 											</Button>
 										</div>
 									)}
 								</>
 							)}
+							<div className="jr-upload-note">
+								<Icon name="shield" size={16} />
+								<span>Your resume stays in your local workspace. Relevant excerpts help the assistant explain a match or draft a note.</span>
+							</div>
 							{p && (
 								<div style={{ marginTop: 12 }}>
 									<Section label="Profile">
 										<LabelValue label="Name">{p.name || '-'}</LabelValue>
 										<LabelValue label="Summary">{p.headline || '-'}</LabelValue>
-										<LabelValue label="Level">{p.level === 'intern' ? 'Internships' : 'New grad'}{p.graduation ? ` · graduating ${p.graduation}` : ''}</LabelValue>
+										<LabelValue label="Level">
+											{p.level === 'intern' ? 'Internships' : 'New grad'}
+											{p.graduation ? ` · graduating ${p.graduation}` : ''}
+										</LabelValue>
 									</Section>
 									<Section label="Skills">
 										<ChipList items={p.skills} addLabel="Add skill" onChange={(skills) => void saveProfileEdit({ ...p, skills })} />
 									</Section>
 									<Section label="Evidence the AI may quote">
 										<ul style={pr.evidence}>
-											{p.evidence.map((e) => <li key={e}>{e}</li>)}
+											{p.evidence.map((e) => (
+												<li key={e}>{e}</li>
+											))}
 										</ul>
 									</Section>
 								</div>
 							)}
 						</Card>
 
-						<Card header="What to look for">
+						<Card header="Your preferences">
 							<Section label="Level">
 								<div style={pr.chips}>
 									{(['intern', 'new_grad'] as Level[]).map((lvl) => (
@@ -187,7 +234,7 @@ export const Profile: React.FC = () => {
 							<Section label="Target roles">
 								<ChipList items={prefs.roles} addLabel="Add role" onChange={(roles) => setPrefs({ ...prefs, roles })} />
 							</Section>
-							<Section label="Locations (empty = anywhere)">
+							<Section label="Locations · leave empty for anywhere">
 								<ChipList items={prefs.locations} addLabel="Add city" onChange={(locations) => setPrefs({ ...prefs, locations })} />
 							</Section>
 							<Section label="Options">
@@ -201,11 +248,29 @@ export const Profile: React.FC = () => {
 								</div>
 								<div style={pr.inline}>
 									<span style={s.small}>Minimum score</span>
-									<ToggleGroup options={[{ id: '30', label: '30' }, { id: '45', label: '45' }, { id: '60', label: '60' }, { id: '75', label: '75' }]} value={String(prefs.minScore)} onChange={(v) => setPrefs({ ...prefs, minScore: Number(v) })} />
+									<ToggleGroup
+										options={[
+											{ id: '30', label: '30' },
+											{ id: '45', label: '45' },
+											{ id: '60', label: '60' },
+											{ id: '75', label: '75' },
+										]}
+										value={String(prefs.minScore)}
+										onChange={(v) => setPrefs({ ...prefs, minScore: Number(v) })}
+									/>
 								</div>
 								<div style={{ ...pr.inline, marginTop: 8 }}>
 									<span style={s.small}>Posted within</span>
-									<ToggleGroup options={[{ id: '7', label: '7 days' }, { id: '14', label: '14 days' }, { id: '30', label: '30 days' }, { id: '60', label: '60 days' }]} value={String(prefs.maxAgeDays)} onChange={(v) => setPrefs({ ...prefs, maxAgeDays: Number(v) })} />
+									<ToggleGroup
+										options={[
+											{ id: '7', label: '7 days' },
+											{ id: '14', label: '14 days' },
+											{ id: '30', label: '30 days' },
+											{ id: '60', label: '60 days' },
+										]}
+										value={String(prefs.maxAgeDays)}
+										onChange={(v) => setPrefs({ ...prefs, maxAgeDays: Number(v) })}
+									/>
 								</div>
 							</Section>
 							<Section label="Skip companies">
@@ -214,17 +279,23 @@ export const Profile: React.FC = () => {
 						</Card>
 					</div>
 
-					<Card header="Sources">
-						<div style={{ ...s.muted, marginBottom: 10 }}>
-							Always on: the community-maintained SimplifyJobs lists for the levels above (updated several times a day). Add any company that hires through Greenhouse, Lever or Ashby to read its own careers board directly: fresher, with full descriptions, and closed postings are detected.
+					<Card header="Where we look" headerActions={<span style={s.small}>{prefs.levels.length + prefs.watched.length} active sources</span>}>
+						<div className="jr-source-tags">
+							{prefs.levels.map((level) => (
+								<span className="jr-source-tag" key={level}>
+									<Icon name="check" size={13} />
+									{SIMPLIFY_SOURCES[level].label}
+								</span>
+							))}
 						</div>
+						<div style={{ ...s.muted, marginBottom: 10 }}>We check the SimplifyJobs lists for new roles. Follow a company to include its Greenhouse, Lever or Ashby careers board too.</div>
 						<div style={pr.chips}>
 							{prefs.watched.map((w) => (
 								<Chip key={`${w.ats}:${w.slug}`} label={`${w.name ?? w.slug} (${w.ats})`} onRemove={() => setPrefs({ ...prefs, watched: prefs.watched.filter((x) => x !== w) })} />
 							))}
 						</div>
 						<div style={{ ...s.row, marginTop: 10 }}>
-							<div style={{ width: 240 }}>
+							<div style={{ width: 320, maxWidth: '100%' }}>
 								<InputField placeholder="Company board name, e.g. ramp, scaleai" value={slug} onChange={(e) => setSlug(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void addCompany()} />
 							</div>
 							<Button variant="secondary" small disabled={detecting || !slug.trim()} onClick={() => void addCompany()}>
@@ -234,7 +305,8 @@ export const Profile: React.FC = () => {
 						</div>
 					</Card>
 
-					<Card header="Demo and data">
+					<details className="jr-data-controls">
+						<summary>Demo and data controls</summary>
 						<div style={s.row}>
 							<Button variant="secondary" small onClick={() => void replay()}>
 								Replay the last 24 hours as new
@@ -247,7 +319,7 @@ export const Profile: React.FC = () => {
 							</Button>
 							<span style={s.small}>Removes your profile, tracker, reminders and the job index from Redis.</span>
 						</div>
-					</Card>
+					</details>
 				</div>
 			</div>
 			{confirmReset && (
