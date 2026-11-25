@@ -1,12 +1,14 @@
 /**
  * Assistant: chat with an agent that reads your live JobRadar data from
- * Redis, saves notes and reminders in its own namespace, and reads job pages.
+ * the workspace snapshot and reads job pages.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, ChatView, useChatMessages } from 'shell';
+import { Button, ChatView } from 'shell';
 import assistantPipe from '../pipelines/assistant.pipe';
-import { dropToken, pipelineToken } from '../lib/redis';
+import { dropToken, pipelineToken } from '../lib/pipelines';
+import { dataStore } from '../lib/storage';
+import { Question } from 'rocketride';
 import { useApp } from '../state';
 import { PageHeader } from '../ui';
 import { Icon } from '../icons';
@@ -16,10 +18,10 @@ const st: Record<string, React.CSSProperties> = {
 	chat: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
 };
 
-const SUGGESTIONS = ['What are my best new matches today?', 'Which applications should I follow up on?', 'Remind me to prep for interviews on Friday', 'Compare my top 3 matches'];
+const SUGGESTIONS = ['What are my best new matches today?', 'Which applications should I follow up on?', 'Help me prepare for interviews on Friday', 'Compare my top 3 matches'];
 
 export const Assistant: React.FC = () => {
-	const { client, isConnected, reloadUser } = useApp();
+	const { client, isConnected } = useApp();
 	const [token, setToken] = useState<string | null>(null);
 	const started = useRef(false);
 
@@ -34,27 +36,63 @@ export const Assistant: React.FC = () => {
 			});
 	}, [client, isConnected]);
 
-	const { messages, isTyping, sendMessage, clearMessages } = useChatMessages();
-
-	const send = useCallback(
+	const history = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
+	const request = useCallback(
 		async (text: string) => {
-			if (!client || !token) return;
-			await sendMessage(text, client, token);
-			// The agent may have saved a note or reminder: pick it up.
-			if (/remind|note|remember|save/i.test(text)) void reloadUser();
+			if (!client || !token) throw new Error('Connect to RocketRide to continue.');
+			const digest = await dataStore(client, 'user').getJson('digest');
+			const question = new Question();
+			question.addQuestion(JSON.stringify({ question: text, digest }));
+			for (const message of history.current.slice(-6)) question.addHistory(message);
+			const result = (await client.chat({ token, question })) as { answers?: string[] };
+			const answer = result.answers?.join('\n') || 'No answer returned. Please try again.';
+			history.current.push({ role: 'user', content: text }, { role: 'assistant', content: answer });
+			return [{ text: answer, key: 'answers' }];
 		},
-		[client, token, sendMessage, reloadUser]
+		[client, token]
 	);
+	const [messages, setMessages] = useState<React.ComponentProps<typeof ChatView>['messages']>([]);
+	const [isTyping, setIsTyping] = useState(false);
+	const nextId = useRef(0);
+	const clearMessages = () => setMessages([]);
+
+	const send = async (text: string) => {
+		if (!client || !token || isTyping || !text.trim()) return;
+		const timestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+		setMessages((previous) => [...previous, { id: ++nextId.current, text, sender: 'user', timestamp: timestamp() }]);
+		setIsTyping(true);
+		try {
+			const answers = await request(text);
+			setMessages((previous) => [...previous, ...answers.map((answer) => ({ id: ++nextId.current, text: answer.text, sender: 'bot' as const, timestamp: timestamp() }))]);
+		} catch (error) {
+			setMessages((previous) => [...previous, { id: ++nextId.current, text: error instanceof Error ? error.message : 'Please try again.', sender: 'bot', timestamp: timestamp() }]);
+			dropToken(client, assistantPipe);
+			started.current = false;
+			void pipelineToken(client, assistantPipe, 'JobRadar assistant')
+				.then(setToken)
+				.catch(() => setToken(null));
+		} finally {
+			setIsTyping(false);
+		}
+	};
 
 	return (
 		<div style={st.wrap}>
 			<div className="jr-chat-head">
 				<PageHeader
 					title="Your job search assistant"
-					subtitle="Talk through your matches, plan a follow-up, or save a reminder. Your assistant has the context."
+					subtitle="Talk through your matches, plan a follow-up, or prepare for an interview. Your assistant has the context."
 					actions={
 						messages.length > 0 ? (
-							<Button variant="ghost" small onClick={clearMessages}>
+							<Button
+								variant="ghost"
+								small
+								disabled={isTyping}
+								onClick={() => {
+									history.current = [];
+									clearMessages();
+								}}
+							>
 								New chat
 							</Button>
 						) : undefined
@@ -64,7 +102,7 @@ export const Assistant: React.FC = () => {
 			{messages.length === 0 && (
 				<div className="jr-chat-suggestions">
 					{SUGGESTIONS.map((q) => (
-						<Button key={q} variant="secondary" small disabled={!token} onClick={() => void send(q)}>
+						<Button key={q} variant="secondary" small disabled={!token || isTyping} onClick={() => void send(q)}>
 							<Icon name="assistant" size={17} />
 							{q}
 						</Button>

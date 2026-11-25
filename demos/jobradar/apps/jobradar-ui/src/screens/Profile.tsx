@@ -195,7 +195,7 @@ export const Profile: React.FC = () => {
 							)}
 							<div className="jr-upload-note">
 								<Icon name="shield" size={16} />
-								<span>Your resume stays in your local workspace. Relevant excerpts help the assistant explain a match or draft a note.</span>
+								<span>Your resume is saved in your signed-in RocketRide workspace. The writer uses it to explain matches and tailor drafts.</span>
 							</div>
 							{p && (
 								<div style={{ marginTop: 12 }}>
@@ -317,7 +317,7 @@ export const Profile: React.FC = () => {
 							<Button variant="danger" small onClick={() => setConfirmReset(true)}>
 								Delete all JobRadar data
 							</Button>
-							<span style={s.small}>Removes your profile, tracker, reminders and the job index from Redis.</span>
+							<span style={s.small}>Removes your profile, tracker, reminders and the job index from your workspace.</span>
 						</div>
 					</details>
 				</div>
@@ -325,7 +325,7 @@ export const Profile: React.FC = () => {
 			{confirmReset && (
 				<ConfirmDialog
 					title="Delete all JobRadar data?"
-					message="This removes your resume profile, every tracked application, reminders, notes and the job index from Redis. It cannot be undone."
+					message="This removes your resume profile, every tracked application, reminders, notes and the job index from your workspace. It cannot be undone."
 					confirmLabel="Delete everything"
 					destructive
 					onConfirm={() => {

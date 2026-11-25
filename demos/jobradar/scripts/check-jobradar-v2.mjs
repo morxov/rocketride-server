@@ -5,7 +5,6 @@
 // Each restarts its pipeline so .pipe edits take effect.
 import { readFileSync } from 'node:fs';
 // `rocketride` is the workspace's vendored client, installed by `rocketride init` (see ../README.md).
-// eslint-disable-next-line n/no-missing-import
 import { RocketRideClient, Question } from 'rocketride';
 const [which = 'profile', arg] = process.argv.slice(2);
 const pipeline = JSON.parse(readFileSync(`apps/jobradar-ui/src/pipelines/${which}.pipe`, 'utf8'));
@@ -36,7 +35,14 @@ if (which === 'profile') {
 				'Nice to have: Go, distributed systems.',
 		},
 	};
-	q.addQuestion(which === 'writer' ? JSON.stringify(fitTask) : (arg ?? 'What are my best new matches today?'));
+	if (which === 'writer') q.addQuestion(JSON.stringify(fitTask));
+	else {
+		const records = JSON.parse(await client.fsReadString('.jobradar/v1/user.json'));
+		q.addQuestion(JSON.stringify({
+			question: arg ?? 'What are my best new matches today?',
+			digest: JSON.parse(records.digest?.value ?? '{}'),
+		}));
+	}
 	res = await client.chat({ token, question: q });
 }
 console.log(`${((Date.now() - t) / 1000).toFixed(1)}s`, Object.keys(res ?? {}));

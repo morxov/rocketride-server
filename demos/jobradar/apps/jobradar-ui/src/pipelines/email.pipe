@@ -1,0 +1,38 @@
+{
+	"components": [
+		{
+			"id": "tools_1",
+			"provider": "tools",
+			"config": {
+				"hideForm": true,
+				"mode": "Source",
+				"parameters": {},
+				"type": "tools"
+			}
+		},
+		{
+			"id": "gmail_1",
+			"provider": "tool_gmail",
+			"name": "Application email (read only)",
+			"config": {
+				"type": "tool_gmail",
+				"authType": "user",
+				"access": "readonly",
+				"userToken": "${ROCKETRIDE_GMAIL_TOKEN}"
+			},
+			"control": [
+				{
+					"classType": "tool",
+					"from": "tools_1"
+				}
+			]
+		}
+	],
+	"project_id": "3a231207-a716-47de-a8a0-660d8ec53d56",
+	"viewport": {
+		"x": 0,
+		"y": 0,
+		"zoom": 1
+	},
+	"version": 1
+}

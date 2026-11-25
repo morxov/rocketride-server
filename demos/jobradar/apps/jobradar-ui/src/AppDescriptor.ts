@@ -22,7 +22,7 @@ import App from './App';
 import { Brand, RadarMark } from './icons';
 
 const descriptor: AppDescriptor = {
-	id: 'local.jobradar',
+	id: 'aidenbuck.jobradar',
 	name: 'JobRadar',
 	branding: { appName: 'JobRadar', logo: createElement(Brand), logoCollapsed: createElement(RadarMark), hideAnnouncements: true },
 	app: App,

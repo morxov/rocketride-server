@@ -1,24 +1,8 @@
-/**
- * Everything JobRadar keeps in Redis, and the refresh cycle.
- *
- * Key layout (namespaces come from the three tool_redis nodes):
- *   jobradar:jobs:idx:{0..31}          JSON {fp: {f: first seen, l: last seen}} — shard of the first-seen index
- *   jobradar:jobs:meta:initialized     set once, so the first run back-dates first-seen to the posting date
- *   jobradar:jobs:lock:refresh         SET NX lock, 120 s, so two tabs never write the index at once
- *   jobradar:jobs:desc:{fp}            job description cache, 7 days (spares Firecrawl credits)
- *   jobradar:jobs:stat:{date}:{metric} daily counters (INCR), 35 days
- *   jobradar:u:alex:profile | resume | prefs | state | digest
- *   jobradar:u:alex:app:{fp}           tracker record
- *   jobradar:u:alex:remind:{fp}        follow-up reminder, expires 14 days after it is due
- *   jobradar:u:alex:fit:{fp}           cached "explain fit", 7 days
- *   jobradar:u:alex:stat:applied:{wk}  applications per ISO week (INCR)
- *   jobradar:u:alex:notes:*            notes and reminders the assistant saved
- *   jobradar:seen:alex:s:{fp} | h:{fp} seen (45 days) / hidden (90 days) marks
- */
+/** Account-scoped file-store records, expiring caches, and job refresh. */
 
 import type { RocketRideClient } from 'rocketride';
 import { DEFAULT_PREFS, passesFilters, scoreJob, type Prefs, type Profile, type ScoredJob } from './match';
-import { redis } from './redis';
+import { dataStore } from './storage';
 import { fetchJobs, isOnBoard, postingKey, type FetchReport, type Job } from './sources';
 
 const DAY = 86400;
@@ -76,7 +60,7 @@ export interface TrackItem {
 }
 
 export interface Reminder {
-	id: string; // redis key under the user namespace
+	id: string; // file-store key under the user namespace
 	fp?: string;
 	text: string;
 	due: string; // YYYY-MM-DD
@@ -124,8 +108,8 @@ export interface RefreshResult {
 // =============================================================================
 
 export async function loadUser(client: RocketRideClient): Promise<UserData> {
-	const user = redis(client, 'redis_user');
-	const seenNode = redis(client, 'redis_seen');
+	const user = dataStore(client, 'user');
+	const seenNode = dataStore(client, 'seen');
 	const [keys, seenKeys] = await Promise.all([user.scanAll(), seenNode.scanAll()]);
 
 	const pick = (prefix: string) => keys.filter((k) => k.startsWith(prefix));
@@ -172,9 +156,9 @@ export async function loadUser(client: RocketRideClient): Promise<UserData> {
 	};
 }
 
-export const saveProfile = (c: RocketRideClient, p: Profile) => redis(c, 'redis_user').setJson('profile', p, 0);
-export const saveResume = (c: RocketRideClient, text: string) => redis(c, 'redis_user').set('resume', text.slice(0, 40000), 0);
-export const savePrefs = (c: RocketRideClient, p: Prefs) => redis(c, 'redis_user').setJson('prefs', p, 0);
+export const saveProfile = (c: RocketRideClient, p: Profile) => dataStore(c, 'user').setJson('profile', p, 0);
+export const saveResume = (c: RocketRideClient, text: string) => dataStore(c, 'user').set('resume', text.slice(0, 40000), 0);
+export const savePrefs = (c: RocketRideClient, p: Prefs) => dataStore(c, 'user').setJson('prefs', p, 0);
 
 /** A gap longer than this between two moments of activity starts a new visit. */
 const VISIT_GAP = 2 * 3600;
@@ -196,7 +180,7 @@ interface SessionState {
  * seen since you were last here. A brand-new user starts 3 days back.
  */
 export async function startSession(c: RocketRideClient): Promise<number> {
-	const user = redis(c, 'redis_user');
+	const user = dataStore(c, 'user');
 	const state = (await user.getJson<SessionState>('state')) ?? {};
 	const now = nowSec();
 	const lastActive = state.lastActive ?? state.lastVisit;
@@ -210,25 +194,25 @@ export async function startSession(c: RocketRideClient): Promise<number> {
 
 /** Keep the visit alive while the app is open (called on every refresh). */
 export async function touchSession(c: RocketRideClient, since: number): Promise<void> {
-	await redis(c, 'redis_user').setJson('state', { since, lastActive: nowSec() }, 0);
+	await dataStore(c, 'user').setJson('state', { since, lastActive: nowSec() }, 0);
 }
 
 export async function markAllSeen(c: RocketRideClient): Promise<number> {
 	const now = nowSec();
-	await redis(c, 'redis_user').setJson('state', { since: now, lastActive: now }, 0);
+	await dataStore(c, 'user').setJson('state', { since: now, lastActive: now }, 0);
 	return now;
 }
 
-export const markSeen = (c: RocketRideClient, fp: string) => redis(c, 'redis_seen').set(`s:${fp}`, '1', SEEN_TTL, 'NX');
-export const hideJob = (c: RocketRideClient, fp: string) => redis(c, 'redis_seen').set(`h:${fp}`, '1', HIDDEN_TTL);
-export const unhideJob = (c: RocketRideClient, fp: string) => redis(c, 'redis_seen').delete([`h:${fp}`]);
+export const markSeen = (c: RocketRideClient, fp: string) => dataStore(c, 'seen').set(`s:${fp}`, '1', SEEN_TTL, 'NX');
+export const hideJob = (c: RocketRideClient, fp: string) => dataStore(c, 'seen').set(`h:${fp}`, '1', HIDDEN_TTL);
+export const unhideJob = (c: RocketRideClient, fp: string) => dataStore(c, 'seen').delete([`h:${fp}`]);
 
 // =============================================================================
 // TRACKER
 // =============================================================================
 
 export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'title' | 'company' | 'url' | 'locations'>, status: Status, existing?: TrackItem): Promise<TrackItem> {
-	const user = redis(c, 'redis_user');
+	const user = dataStore(c, 'user');
 	const now = nowSec();
 	const item: TrackItem = existing
 		? { ...existing, status, updatedAt: now, history: [...existing.history, { status, at: now }] }
@@ -249,18 +233,18 @@ export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'ti
 	} else if (status === 'offer' || status === 'closed') {
 		await user.delete([`remind:${job.fp}`]);
 	}
-	await redis(c, 'redis_seen').set(`s:${job.fp}`, '1', SEEN_TTL);
+	await dataStore(c, 'seen').set(`s:${job.fp}`, '1', SEEN_TTL);
 	return item;
 }
 
 export async function updateTrackItem(c: RocketRideClient, item: TrackItem): Promise<void> {
-	await redis(c, 'redis_user').setJson(`app:${item.fp}`, { ...item, updatedAt: nowSec() }, 0, 'XX');
+	await dataStore(c, 'user').setJson(`app:${item.fp}`, { ...item, updatedAt: nowSec() }, 0, 'XX');
 }
 
-export const untrack = (c: RocketRideClient, fp: string) => redis(c, 'redis_user').delete([`app:${fp}`, `remind:${fp}`, `fit:${fp}`]);
+export const untrack = (c: RocketRideClient, fp: string) => dataStore(c, 'user').delete([`app:${fp}`, `remind:${fp}`, `fit:${fp}`]);
 
 export async function snoozeReminder(c: RocketRideClient, r: Reminder, days: number): Promise<void> {
-	const user = redis(c, 'redis_user');
+	const user = dataStore(c, 'user');
 	// Push from the due date if it is still ahead, otherwise from today.
 	const [y, m, d] = r.due.split('-').map(Number);
 	const dueMs = y ? new Date(y, m - 1, d).getTime() : 0;
@@ -271,23 +255,23 @@ export async function snoozeReminder(c: RocketRideClient, r: Reminder, days: num
 	await user.setJson(r.id, { ...current, due }, ttl);
 }
 
-export const dismissReminder = (c: RocketRideClient, id: string) => redis(c, 'redis_user').delete([id]);
+export const dismissReminder = (c: RocketRideClient, id: string) => dataStore(c, 'user').delete([id]);
 
 // =============================================================================
 // CACHES
 // =============================================================================
 
 export async function cachedDescription(c: RocketRideClient, fp: string): Promise<string | null> {
-	const r = await redis(c, 'redis_jobs').get(`desc:${fp}`);
+	const r = await dataStore(c, 'jobs').get(`desc:${fp}`);
 	return r.found ? r.value : null;
 }
-export const cacheDescription = (c: RocketRideClient, fp: string, text: string) => redis(c, 'redis_jobs').set(`desc:${fp}`, text.slice(0, 30000), DESC_TTL);
+export const cacheDescription = (c: RocketRideClient, fp: string, text: string) => dataStore(c, 'jobs').set(`desc:${fp}`, text.slice(0, 30000), DESC_TTL);
 
 export async function cachedFit(c: RocketRideClient, fp: string): Promise<string | null> {
-	const r = await redis(c, 'redis_user').get(`fit:${fp}`);
+	const r = await dataStore(c, 'user').get(`fit:${fp}`);
 	return r.found ? r.value : null;
 }
-export const cacheFit = (c: RocketRideClient, fp: string, text: string) => redis(c, 'redis_user').set(`fit:${fp}`, text.slice(0, 30000), FIT_TTL);
+export const cacheFit = (c: RocketRideClient, fp: string, text: string) => dataStore(c, 'user').set(`fit:${fp}`, text.slice(0, 30000), FIT_TTL);
 
 // =============================================================================
 // REFRESH
@@ -296,7 +280,7 @@ export const cacheFit = (c: RocketRideClient, fp: string, text: string) => redis
 type Shard = Record<string, { f: number; l: number }>;
 
 async function bump(c: RocketRideClient, metric: string, by: number): Promise<number> {
-	const node = redis(c, 'redis_jobs');
+	const node = dataStore(c, 'jobs');
 	const key = `stat:${today()}:${metric}`;
 	if (by > 0) {
 		const r = await node.incr(key, by);
@@ -308,11 +292,11 @@ async function bump(c: RocketRideClient, metric: string, by: number): Promise<nu
 
 /**
  * Fetch every source, merge duplicates, then reconcile with the first-seen
- * index in Redis. Only the tab that wins the lock writes the index; another
- * tab refreshing at the same moment still gets correct results read-only.
+ * index in the file store. Keep one active app page per account while editing;
+ * this file-store backend does not provide distributed locking.
  */
 export async function refresh(c: RocketRideClient, user: UserData): Promise<RefreshResult> {
-	const jobsNode = redis(c, 'redis_jobs');
+	const jobsNode = dataStore(c, 'jobs');
 	const report = await fetchJobs({ levels: user.prefs.levels, watched: user.prefs.watched, maxAgeDays: user.prefs.maxAgeDays });
 	const now = nowSec();
 
@@ -401,7 +385,7 @@ export async function detectClosed(c: RocketRideClient, user: UserData, r: Pick<
 
 /** "Forget" the last N hours of the index so the next refresh replays those postings as new. */
 export async function replayRecent(c: RocketRideClient, hours: number): Promise<number> {
-	const node = redis(c, 'redis_jobs');
+	const node = dataStore(c, 'jobs');
 	const cutoff = nowSec() - hours * 3600;
 	let removed = 0;
 	await Promise.all(
@@ -418,7 +402,7 @@ export async function replayRecent(c: RocketRideClient, hours: number): Promise<
 			if (changed) await node.setJson(`idx:${i}`, s, 0);
 		}),
 	);
-	await redis(c, 'redis_user').setJson('state', { since: cutoff, lastActive: nowSec() }, 0);
+	await dataStore(c, 'user').setJson('state', { since: cutoff, lastActive: nowSec() }, 0);
 	return removed;
 }
 
@@ -474,14 +458,14 @@ export async function writeDigest(c: RocketRideClient, user: UserData, jobs: Sco
 	};
 	let body = JSON.stringify(digest);
 	if (body.length > 60000) body = JSON.stringify({ ...digest, top_matches: digest.top_matches.slice(0, 5), notes: [] });
-	await redis(c, 'redis_user').set('digest', body, DAY);
+	await dataStore(c, 'user').set('digest', body, DAY);
 }
 
 /** Wipe all JobRadar keys for a clean demo. */
 export async function resetAll(c: RocketRideClient): Promise<number> {
 	let n = 0;
-	for (const node of ['redis_jobs', 'redis_user', 'redis_seen'] as const) {
-		const r = redis(c, node);
+	for (const node of ['jobs', 'user', 'seen'] as const) {
+		const r = dataStore(c, node);
 		n += await r.deleteMany(await r.scanAll());
 	}
 	return n;

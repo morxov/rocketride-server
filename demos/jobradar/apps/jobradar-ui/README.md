@@ -1,134 +1,148 @@
 # JobRadar
 
-A job-search dashboard for internships and new-grad roles that shows you what
-is **new** and worth your time, and keeps everything else out of the way.
+A job-search dashboard for internships and new-grad roles. It merges duplicate
+postings, explains matches, flags stale roles, tracks applications, reads recruiting
+email, and tailors a resume for a selected job.
 
-- **Only what is new.** New postings that match you pop up as notifications and land in **New**. Opening, saving or hiding a job takes it out of New. Older matches wait under **All matches**.
-- **Duplicates merged.** The same role from several sources becomes one card, linked to the company's own application page when there is one.
-- **Ghost and stale checks.** Each card shows when the role was first posted, how many times it was reposted, and whether it closed. Likely stale roles rank lower and can be hidden.
-- **Transparent scores.** Every point comes with a reason you can read. **Explain fit** pairs each requirement with your own resume evidence and lists honest gaps. It never invents experience.
-- **Tracker with follow-ups.** Saved, Applied, Online assessment, Interview, Offer, Closed. Marking a job Applied schedules a follow-up reminder; the AI drafts the email, and you send it.
-- **Assistant.** Chat with a Gemini agent that knows your matches and applications, saves reminders and notes, and reads any job link you paste.
-- **Free and local.** No subscription and no auto-apply. Your resume lives in your own Redis.
-
-## Screens
-
-| Screen | What it is for |
-|---|---|
-| Dashboard | New since your last check, follow-ups due, pipeline, today's best picks, closed-posting alerts |
-| Jobs | New / All matches / Hidden, with search, freshness, remote and stale filters |
-| Job details | Why it matches, freshness, the full posting, Explain fit, cover note and follow-up drafts, tracker status and notes |
-| Tracker | Board of applications, reminders (automatic and from the assistant), assistant notes |
-| Assistant | Chat with suggested questions |
-| Profile and sources | Resume import, target roles, locations, sponsorship, score threshold, watched companies, demo tools |
-
-## Where jobs come from
-
-- The SimplifyJobs internship and new-grad lists on GitHub (about 8,000 open roles, updated several times a day). Their history of closed postings powers repost detection.
-- Any company's own Greenhouse, Lever or Ashby board that you add under **Watch company**. These give full descriptions, and a closed posting is detected when it disappears.
-
-Sources are re-checked every 10 minutes while the app is open, and whenever you press **Check now**.
+The app is `aidenbuck.jobradar`. Its current pipelines use RocketRide catalog nodes
+and run locally or on RocketRide Cloud **without a Redis node**.
 
 ## Interface
 
 The interface follows Simplify's product layout: white top navigation, a cyan
-dashboard welcome area, pastel summary cards, and a job list beside its selected
-role. The reference screens are published in Simplify's
-[dashboard guide](https://help.simplify.jobs/en/help/articles/6390631-navigate-your-dashboard)
-and [job board guide](https://help.simplify.jobs/en/articles/2830264-view-jobs-on-simplifys-job-board).
+welcome area, pastel summary cards, and a job list beside its selected role.
 
 ![JobRadar dashboard using the fictional sample profile](assets/jobradar-desktop.jpg)
 
-- `src/design.css` owns the app-scoped palette, spacing, cards, and responsive
-  layouts. It does not change the shell's global theme.
-- `src/ui.tsx` provides the shared page header, panels, metric tiles, and job
-  cards. `src/icons.tsx` holds the JobRadar mark and interface icons.
-- `App.tsx` renders top navigation through a single `AppLayout`, with the shell's
-  connection status bar. The profile avatar opens Profile and sources.
-- `JobPanel` reuses the same actions and content in an embedded job-board view
-  and the existing drawer on other screens. At narrow widths, selecting a job
-  replaces the result list; closing the detail restores the list. Detail tabs
-  support arrow keys, Home, and End.
-- The sample resume is fictional. Importing it creates a local demo profile
-  and checks live job sources. Demo replay and reset actions are under the
-  collapsed **Demo and data controls** section on Profile and sources.
+| Screen | Purpose |
+|---|---|
+| Home | New matches, follow-ups, application progress, best picks |
+| Job Matches | Search, filters, freshness, sources, and job details |
+| Job details / Resume | Create an editable resume version for this role, review changes and gaps, save edits, download TXT, or Print / Save PDF |
+| Job Tracker | Saved through Closed, follow-up reminders, application notes |
+| Assistant | Discuss the current search snapshot or read a public job URL |
+| Email | Connect Gmail, search application messages, read plain text, and review a proposed tracker update |
+| Profile | Import the original resume, edit preferences, watch companies, and manage demo data |
 
-## RocketRide pipelines (`src/pipelines/`)
+`src/design.css` owns scoped styling and responsive layouts. `src/ui.tsx` and
+`src/icons.tsx` contain shared interface components. Detail tabs support arrow
+keys, Home, and End. The bundled sample resume is fictional.
 
-| File | Nodes | Used for |
+## RocketRide nodes
+
+| Pipeline | Nodes | Purpose |
 |---|---|---|
-| `jobradar-tools.pipe` | `tools` + 3 x `tool_redis` + `tool_firecrawl` | Every read and write the app makes (`client.tool`). Each Redis node is locked to its own namespace: job index (`jobradar:jobs:`), your data (`jobradar:u:alex:`), seen and hidden marks (`jobradar:seen:alex:`). |
-| `profile.pipe` | `webhook` → `parse` → `response_text`, and `question` → `prompt` → `llm_gemini` → `response_answers` | Resume to profile JSON plus the plain resume text |
-| `writer.pipe` | `chat` → `prompt` → `llm_gemini` → `response_answers` | Explain fit, cover note, follow-up email |
-| `assistant.pipe` | `chat` → `agent_rocketride` (+ `llm_gemini`, `memory_internal`, read-only `tool_redis`, notes-only `tool_redis`, `tool_firecrawl`) → `response_answers` | The assistant. It reads everything and can write only under `jobradar:u:alex:notes:`. |
+| `profile.pipe` | `webhook`, `parse`, `response_text`, `question`, `prompt`, `llm_gemini`, `response_answers` | Extract resume text and profile facts |
+| `writer.pipe` | `chat`, `prompt`, `llm_gemini`, `response_answers` | Explain fit, tailor resumes, draft cover/follow-up text, classify an email update |
+| `jobradar-tools.pipe` | `tools`, `tool_firecrawl` | Read public job pages |
+| `assistant.pipe` | `chat`, `agent_rocketride`, `llm_gemini`, `memory_internal`, `tool_firecrawl`, `response_answers` | Answer from an app-supplied snapshot; read a job link on request |
+| `email.pipe` | `tools`, `tool_gmail` | Read-only Gmail search, message metadata, plain-text bodies, and connection checks |
 
-All LLM nodes use Gemini 3.5 Flash Lite with `${ROCKETRIDE_GEMINI_KEY}`; Firecrawl uses `${ROCKETRIDE_FIRECRAWL_KEY}`. Both are resolved on the engine.
+Gemini uses `${ROCKETRIDE_GEMINI_KEY}` and Firecrawl uses
+`${ROCKETRIDE_FIRECRAWL_KEY}` from the connected user's server environment.
+Credentials never belong in tracked source or pipeline JSON. Edited pipelines receive new
+`project_id` values to avoid reattaching to old tasks.
 
-## How Redis is used
+## Email connection
 
-| Key | What it does | Tools |
-|---|---|---|
-| `jobs:idx:{0..31}` | Sharded first-seen index, which powers "new" and pruning | GET, SET |
-| `jobs:lock:refresh` | Lock so two tabs never write the index at once (120 s) | SET NX, DELETE |
-| `jobs:desc:{fp}` | Job description cache in front of Firecrawl (7 days) | SET with expiry, GET |
-| `jobs:stat:{date}:{metric}` | Daily counters (35 days) | INCR, EXPIRE |
-| `u:alex:profile`, `resume`, `prefs`, `state` | Your profile, resume text, preferences, last visit | GET, SET |
-| `u:alex:app:{fp}` | Tracker record | SET, SET XX, DELETE |
-| `u:alex:remind:{fp}` | Follow-up reminder; expires 14 days after it is due | SET with expiry |
-| `u:alex:fit:{fp}` | Cached Explain fit (7 days) | SET with expiry, GET |
-| `u:alex:stat:applied:{week}` | Applications per week | INCR, EXPIRE |
-| `u:alex:digest` | Snapshot the assistant reads (1 day) | SET with expiry |
-| `u:alex:notes:*` | Reminders and notes the assistant saved | SET (by the agent), SCAN |
-| `seen:alex:s:{fp}` / `h:{fp}` | Seen (45 days) and hidden (90 days) marks | SET NX with expiry, SCAN |
+1. On Cloud, open **Email > Connect Gmail**. Google sign-in uses RocketRide's hosted OAuth
+   broker, following the platform's Google node configuration flow.
+2. Review Google's consent screen. The requested scope is `gmail.readonly`.
+3. Search with Gmail syntax. The default finds recruiting messages from the last
+   180 days and loads at most 25 results. Selecting a message reads its plain text.
+4. Select the related tracked application, then **Review application update**.
+   This explicitly sends that message's subject, sender, and up to 16,000 characters
+   of text plus the selected application details to Gemini. Review its evidence
+   before pressing **Confirm tracker update**.
 
-## Running it
+Company-name matches are suggestions only. No tracker status changes automatically.
+Mail is never sent, deleted, relabeled, or marked as read. HTML bodies are not
+rendered. Retrieved content is treated as untrusted data in the writer prompt.
 
-Setup, checks and run steps are in `../../README.md` (the
-`demos/jobradar/README.md` file at the top of this demo).
+OAuth callback tokens are removed from the URL immediately, checked against a
+pending per-tab nonce, and passed only to a dedicated running Gmail task. OAuth
+credentials are not written to the file store or browser storage. The task handle
+is kept in session storage and the task expires after one hour. Reconnect when the
+session expires or the tab is closed. **Disconnect Gmail** terminates the task;
+revoking Google consent is a separate action in the Google account permissions.
+A denied sign-in or a broker/Google configuration error appears in the Email page.
 
-### Cloud deployment readiness
+The production OAuth broker accepts only HTTPS RocketRide domains, so it rejects
+localhost callbacks. The local page links to **Connect Gmail on Cloud** rather
+than initiating a broken redirect. A local engine can alternatively be configured
+out of band with `ROCKETRIDE_GMAIL_TOKEN` containing the user-OAuth JSON from the
+platform's Google node flow; restart the engine, then choose **Use configured local
+Gmail**. Keep this credential in the ignored engine `.env` only.
 
-A RocketRide Cloud deployment was attempted on November 24, 2026. Cloud sign-in
-and the deployment connection succeeded, but the server rejected the upload
-because the organization has no registered developer id. No app version was
-deployed or published.
+## Resume customization
 
-The cloud catalog also lacked `tool_redis`; starting the tools pipeline returned
-`The service tool_redis was not found`. The existing Redis hosts are
-`127.0.0.1:6379`, which refer to the engine's machine. A cloud engine cannot use
-the Redis container running on this Mac through that address.
+Open a role's **Resume** tab and press **Tailor my resume**. The writer receives
+the complete imported resume and up to 16,000 characters of the posting. It is
+instructed to preserve facts, contact details, dates, employers, education, links,
+and numeric claims. It returns the resume, a change list, and unsupported job
+requirements separately. Model output still needs human review.
 
-Before a working cloud deployment, the organization needs a registered developer
-id, a cloud engine that includes `tool_redis`, a reachable Redis instance, and
-the Gemini and Firecrawl secrets configured on that engine. If the pipelines
-are changed for the cloud connection, assign new `project_id` values.
+Edit and save the version for that role. TXT export and browser Print / Save PDF
+use the current editor contents, including unsaved edits. The original remains
+in Profile. A source fingerprint prevents restoring a saved version against a
+different uploaded resume. Versions persist until removed with the app's data.
 
-CLI connection gotcha: when the development `.env` contains `MYAPIKEY`, that
-value takes precedence over the deployment credential inside the SDK. Clear it
-for the cloud command only, preserving the local `.env`:
+## Persistence and migration
+
+`src/lib/storage.ts` replaces the former Redis wrapper with the RocketRide SDK's
+account-scoped file store:
+
+- `.jobradar/v1/user.json`: profile, source resume, preferences, tracker, reminders,
+  notes, digest, fit cache, `tailored:<job fingerprint>` versions.
+- `.jobradar/v1/jobs.json`: first-seen index, description cache, counters.
+- `.jobradar/v1/seen.json`: seen and hidden marks.
+
+Values retain expiry timestamps. Writes are serialized within the page and roll
+back in memory on failure. The current cloud server lacks `fs_put_json`, so the
+adapter uses the supported `fsReadString` / `fsWriteString` SDK methods.
+
+**Use one active JobRadar page per account while editing.** This adapter caches
+namespace snapshots and has no distributed transactions or cross-device lock.
+Concurrent pages can overwrite each other's changes. Local and cloud servers have
+separate user file stores. The assistant receives a fresh digest from the app; it
+can suggest reminders and notes but cannot save them automatically in this version.
+
+To copy an existing Redis demo's records, preserving destination values and TTLs:
 
 ```sh
-ROCKETRIDE_APIKEY='' ./node_modules/.bin/rocketride login --deploy --uri https://api.rocketride.ai --apikey ''
-ROCKETRIDE_APIKEY='' ./node_modules/.bin/rocketride app deploy jobradar-ui
+node --env-file=.env scripts/migrate-jobradar-storage.mjs --cloud
 ```
 
-Cloud deployment credentials remain in the ignored workspace `.env`. Never
-commit them or the engine's provider keys.
+Run from `demos/jobradar`. This is a one-time, non-destructive migration using the
+original local Redis pipeline in `scripts/fixtures/original-redis.pipe`. The live
+app and cloud deployment do not load that pipeline. Redis is needed only to read
+old data during this optional migration.
 
-## Demo script (about 4 minutes)
+## Running, verification, and cloud
 
-1. **Profile and sources:** drop your resume, or press **Try it with a sample resume**. The profile appears in a few seconds and the first check runs.
-2. **Watch company:** add `ramp` or `scaleai`. Their postings pop up as new matches.
-3. **Dashboard:** show New since your last check, today's picks, and the stale count.
-4. Open a job, then **Explain fit**: requirement-to-evidence pairs and honest gaps.
-5. **Save to tracker**, then **Mark applied**. The Tracker shows the follow-up reminder; **Drafts** gives a follow-up email.
-6. **Assistant:** "Which applications should I follow up on?", then "Remind me to prep for Ramp on Friday". The reminder appears in Tracker. Paste any job link and ask "is this a fit?".
-7. To show the live "new posting" moment again: **Profile and sources > Replay the last 24 hours as new**.
+See `../../README.md` for setup. Unit tests cover storage serialization, write
+rollback, read failures, expiry/conditions, resume parsing/source changes, and the
+absence of Redis from runtime pipelines. `scripts/check-jobradar-cloud.mjs` checks
+all pipeline schemas, actual cloud resume generation, email classification with a
+fictional message, and migrated file-store data. Actual Gmail reads require the
+user to complete Google consent. Live browser verification reached Google's
+"unverified app" warning for RocketRide's OAuth service; the user must review
+that warning and finish sign-in before inbox access can be verified. The user
+chose to skip Gmail connection for now; no mailbox access was granted.
+
+Cloud namespace `aidenbuck` was registered on November 24, 2026. The earlier Redis
+catalog and developer-registration blockers have been removed from this app's
+path. App 0.2.0 built successfully and is serving privately to `@me`, never publicly. Cloud provider secrets belong
+in the signed-in user's environment. Cloud deployment credentials stay in the
+ignored workspace `.env`.
 
 ## Limits
 
-- No background scan while the app is closed: app pipelines cannot be scheduled.
-- No Gmail sync yet (no Gmail token configured).
-- Single user (`alex`, set in the pipelines and `src/lib/redis.ts`).
-- `tool_redis` is not yet in a released engine, so this runs only on an engine with that node loaded.
-- The local Redis has no persistence: removing the container loses your tracker.
+- Job sources are checked only while the app is open, normally every 10 minutes.
+- File-store persistence currently supports one active editing page per account.
+- Gmail is the first email provider; Outlook is not wired into this UI.
+- No automatic applications, outgoing email, or automatic calendar scheduling.
+- Auto-apply would need an ATS-specific browser or extension layer for form
+  filling, resume uploads, and screening answers. RocketRide can orchestrate the
+  existing resume/writer and job tools, with `mcp_client` connected to a browser automation MCP server preparing forms
+  for human review. Final submission should remain a separate explicit action.

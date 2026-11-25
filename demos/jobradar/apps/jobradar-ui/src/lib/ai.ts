@@ -4,11 +4,12 @@
  */
 
 import { Question, type PipelineConfig, type RocketRideClient } from 'rocketride';
-import sampleResumeUrl from '../assets/sample-resume.pdf';
 import profilePipe from '../pipelines/profile.pipe';
 import writerPipe from '../pipelines/writer.pipe';
 import type { Profile } from './match';
-import { dropToken, pipelineToken } from './redis';
+import { dropToken, pipelineToken } from './pipelines';
+
+const sampleResumeUrl = new URL('../assets/sample-resume.pdf', import.meta.url).href;
 
 function parseJsonObject(raw: unknown): Record<string, unknown> {
 	if (raw && typeof raw === 'object') return raw as Record<string, unknown>;
@@ -19,7 +20,14 @@ function parseJsonObject(raw: unknown): Record<string, unknown> {
 	return JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
 }
 
-const strings = (v: unknown, max: number) => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean).slice(0, max) : []);
+const strings = (v: unknown, max: number) =>
+	Array.isArray(v)
+		? v
+				.map(String)
+				.map((s) => s.trim())
+				.filter(Boolean)
+				.slice(0, max)
+		: [];
 
 /** Upload a resume; returns the extracted profile and the plain resume text. */
 export async function importResume(client: RocketRideClient, file: File): Promise<{ profile: Profile; text: string }> {
@@ -56,7 +64,7 @@ export async function importResume(client: RocketRideClient, file: File): Promis
 	};
 }
 
-export type WriterTask = 'fit' | 'cover' | 'followup' | 'ask';
+export type WriterTask = 'fit' | 'cover' | 'followup' | 'ask' | 'resume' | 'mail' | 'assistant';
 
 /** Ask the writer pipeline for an explanation or a draft. Returns Markdown or plain text. */
 export async function write(client: RocketRideClient, task: WriterTask, facts: Record<string, unknown>): Promise<string> {

@@ -7,14 +7,15 @@ import { Banner, Button, DetailPanel, LabelValue, MarkdownRenderer, PanelTabBody
 import { useJobActions } from '../actions';
 import { profileFacts, write } from '../lib/ai';
 import { ago, type ScoredJob } from '../lib/match';
-import { scrapePage } from '../lib/redis';
+import { scrapePage } from '../lib/pipelines';
 import { fetchAtsDescription } from '../lib/sources';
 import { STATUSES, cacheDescription, cacheFit, cachedDescription, cachedFit, updateTrackItem, type Status, type TrackItem, localDate } from '../lib/store';
 import { toast, useApp } from '../state';
 import { JobFlags, s, scoreColor } from '../ui';
 import { Icon } from '../icons';
+import { ResumeEditor } from './ResumeEditor';
 
-type Tab = 'overview' | 'fit' | 'write' | 'track';
+type Tab = 'overview' | 'fit' | 'resume' | 'write' | 'track';
 
 const ps: Record<string, React.CSSProperties> = {
 	scoreBig: { width: 42, height: 42, borderRadius: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 },
@@ -115,7 +116,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 			</DetailPanel>
 		);
 
-	/** Description: ATS API first, then the Redis cache, then Firecrawl (cached for 7 days). */
+	/** Description: ATS API first, then the Posting cache, then Firecrawl (cached for 7 days). */
 	const loadDescription = async (): Promise<string> => {
 		if (desc) return desc.text;
 		setDescBusy(true);
@@ -127,13 +128,13 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 			}
 			const cached = await cachedDescription(client, job.fp);
 			if (cached) {
-				setDesc({ text: cached, from: 'Redis cache (fetched earlier with Firecrawl)' });
+				setDesc({ text: cached, from: 'Posting cache (fetched earlier with Firecrawl)' });
 				return cached;
 			}
 			const page = await scrapePage(client, job.url);
 			const text = page.trim() || 'The page returned no readable text.';
 			await cacheDescription(client, job.fp, text);
-			setDesc({ text, from: 'Firecrawl, now cached in Redis for 7 days' });
+			setDesc({ text, from: 'Firecrawl, now cached in the file store for 7 days' });
 			return text;
 		} catch (e) {
 			const msg = `Could not load the posting: ${e instanceof Error ? e.message : String(e)}`;
@@ -187,6 +188,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 	const tabs = [
 		{ id: 'overview', label: 'Overview' },
 		{ id: 'fit', label: 'Explain fit' },
+		{ id: 'resume', label: 'Resume' },
 		{ id: 'write', label: 'Drafts' },
 		{ id: 'track', label: tracked ? `Tracker: ${STATUSES.find((x) => x.id === tracked.status)?.label}` : 'Track' },
 	];
@@ -298,6 +300,8 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 					)}
 				</PanelTabBody>
 			)}
+
+			{tab === 'resume' && <PanelTabBody><ResumeEditor key={job.fp} fp={job.fp} title={job.title} company={job.company} loadDescription={loadDescription} /></PanelTabBody>}
 
 			{tab === 'write' && (
 				<PanelTabBody>

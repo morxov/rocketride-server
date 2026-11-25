@@ -1,12 +1,12 @@
 {
   "name": "local-jobradar",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Job-search dashboard for internships and new-grad roles: only what is new, duplicates merged, stale reposts flagged, a tracker with follow-ups, and a Gemini assistant.",
   "license": "MIT",
   "appManifest": {
-    "id": "local.jobradar",
-    "publisher": "local",
+    "id": "aidenbuck.jobradar",
+    "publisher": "aidenbuck",
     "name": "JobRadar",
     "description": "Job-search dashboard for internships and new-grad roles: only what is new, duplicates merged, stale reposts flagged, a tracker with follow-ups, and a Gemini assistant.",
     "icon": "./icon.svg",

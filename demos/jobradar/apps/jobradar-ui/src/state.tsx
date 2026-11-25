@@ -9,7 +9,7 @@ import { useShellConnection } from 'shell';
 import type { ScoredJob } from './lib/match';
 import { detectClosed, loadUser, markAllSeen, refresh, scoreAll, startSession, touchSession, writeDigest, type Entry, type RefreshResult, type TrackItem, type UserData } from './lib/store';
 
-export type View = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile';
+export type View = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile' | 'email';
 
 export interface Toast {
 	id: number;
@@ -122,7 +122,7 @@ async function doRefresh(client: RocketRideClient, opts: { quiet?: boolean } = {
 async function boot(client: RocketRideClient) {
 	if (booted) return;
 	booted = true;
-	update({ status: 'Loading your data from Redis...' });
+	update({ status: 'Loading your data from your workspace...' });
 	try {
 		const [user, since] = await Promise.all([loadUser(client), startSession(client)]);
 		update({ user, since, status: '' });
@@ -146,7 +146,7 @@ async function reloadUser(client: RocketRideClient) {
 export function useApp() {
 	const { client, isConnected } = useShellConnection();
 	const s = useSyncExternalStore(subscribe, getState);
-	const c = client as RocketRideClient | null;
+	const c = client as unknown as RocketRideClient | null;
 	return {
 		...s,
 		client: c,
@@ -155,7 +155,7 @@ export function useApp() {
 		openJob: (fp: string | null) => update({ openFp: fp }),
 		refreshNow: useCallback(() => (c ? doRefresh(c) : Promise.resolve()), [c]),
 		reloadUser: useCallback(() => (c ? reloadUser(c) : Promise.resolve()), [c]),
-		/** Apply a local change to user data and rescore immediately (the Redis write is done by the caller). */
+		/** Apply a local change to user data and rescore immediately (the file-store write is done by the caller). */
 		patchUser: (fn: (u: UserData) => UserData) => state.user && rescore(fn(state.user)),
 		markAllSeen: useCallback(async () => {
 			if (!c) return;
@@ -171,7 +171,9 @@ const POLL_MS = 10 * 60 * 1000;
 
 /** Mount once: boots the app, then re-checks sources every 10 minutes while open. */
 export const Poller: React.FC = () => {
-	const { client, isConnected } = useShellConnection();
+	// Older cloud shells expose a structural client type. Its public calls are the same.
+	const { client: shellClient, isConnected } = useShellConnection();
+	const client = shellClient as unknown as RocketRideClient | null;
 	const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 	useEffect(() => {
 		if (!client || !isConnected) return;

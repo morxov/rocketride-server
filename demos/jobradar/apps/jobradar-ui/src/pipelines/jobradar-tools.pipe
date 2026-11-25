@@ -24,96 +24,6 @@
 			}
 		},
 		{
-			"id": "redis_jobs",
-			"provider": "tool_redis",
-			"name": "Redis: job index, cache, counters",
-			"config": {
-				"host": "127.0.0.1",
-				"port": 6379,
-				"key_prefix": "jobradar:jobs:",
-				"allow_writes": true,
-				"default_ttl_seconds": 0
-			},
-			"control": [
-				{
-					"classType": "tool",
-					"from": "tools_1"
-				}
-			],
-			"ui": {
-				"position": {
-					"x": 260,
-					"y": 40
-				},
-				"measured": {
-					"width": 150,
-					"height": 40
-				},
-				"nodeType": "default",
-				"formDataValid": true
-			}
-		},
-		{
-			"id": "redis_user",
-			"provider": "tool_redis",
-			"name": "Redis: profile, tracker, reminders",
-			"config": {
-				"host": "127.0.0.1",
-				"port": 6379,
-				"key_prefix": "jobradar:u:alex:",
-				"allow_writes": true,
-				"default_ttl_seconds": 0
-			},
-			"control": [
-				{
-					"classType": "tool",
-					"from": "tools_1"
-				}
-			],
-			"ui": {
-				"position": {
-					"x": 260,
-					"y": 140
-				},
-				"measured": {
-					"width": 150,
-					"height": 40
-				},
-				"nodeType": "default",
-				"formDataValid": true
-			}
-		},
-		{
-			"id": "redis_seen",
-			"provider": "tool_redis",
-			"name": "Redis: seen and hidden marks",
-			"config": {
-				"host": "127.0.0.1",
-				"port": 6379,
-				"key_prefix": "jobradar:seen:alex:",
-				"allow_writes": true,
-				"default_ttl_seconds": 0
-			},
-			"control": [
-				{
-					"classType": "tool",
-					"from": "tools_1"
-				}
-			],
-			"ui": {
-				"position": {
-					"x": 260,
-					"y": 240
-				},
-				"measured": {
-					"width": 150,
-					"height": 40
-				},
-				"nodeType": "default",
-				"formDataValid": true
-			}
-		},
-		{
 			"id": "firecrawl_1",
 			"provider": "tool_firecrawl",
 			"name": "Firecrawl (job pages)",
@@ -141,7 +51,7 @@
 			}
 		}
 	],
-	"project_id": "15544442-701e-401f-83ce-448801973e7f",
+	"project_id": "98940182-29df-42a9-9ffa-048961642fc8",
 	"viewport": {
 		"x": 0,
 		"y": 0,

@@ -986,3 +986,186 @@ button.jr-metric:hover {
 	text-align: left;
 	cursor: pointer;
 }
+
+/* Connected email and per-job resume workspace. */
+.jr-email-page {
+	height: 100%;
+	overflow: auto;
+	box-sizing: border-box;
+	padding: 32px 40px 60px;
+	max-width: 1440px;
+	margin: auto;
+}
+.jr-connect-card {
+	text-align: center;
+	max-width: 570px;
+	margin: 30px auto;
+	padding: 30px 24px;
+}
+.jr-connect-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 24px;
+	width: 76px;
+	height: 76px;
+	border-radius: 24px;
+	background: #dff3f8;
+	color: #367e94;
+}
+.jr-connect-card h2 {
+	font-size: 30px;
+	line-height: 1.2;
+	letter-spacing: -0.7px;
+	margin: 12px 0;
+}
+.jr-connect-card p {
+	color: var(--rr-text-secondary);
+	line-height: 1.65;
+	margin: 16px 0 24px;
+}
+.jr-connect-note {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	font-size: 13px;
+}
+.jr-field-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 650;
+	margin: 12px 0 8px;
+}
+.jr-email-search {
+	padding: 8px 0 20px;
+}
+.jr-email-grid {
+	display: grid;
+	grid-template-columns: minmax(280px, 0.85fr) minmax(350px, 1.4fr);
+	gap: 20px;
+	align-items: start;
+}
+.jr-mail-row {
+	display: block;
+	width: 100%;
+	border: 0;
+	border-bottom: 1px solid var(--rr-border);
+	padding: 18px 12px;
+	background: transparent;
+	text-align: left;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+}
+.jr-mail-row[aria-pressed='true'] {
+	background: #edf8fb;
+}
+.jr-mail-row:hover {
+	background: #f3f8fa;
+}
+.jr-mail-row strong,
+.jr-mail-row span {
+	display: block;
+	overflow-wrap: anywhere;
+}
+.jr-mail-row strong {
+	font-size: 14px;
+	margin-bottom: 7px;
+}
+.jr-mail-row span,
+.jr-mail-row small,
+.jr-mail-row p {
+	font-size: 12px;
+	color: var(--rr-text-secondary);
+	line-height: 1.5;
+}
+.jr-mail-row p {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.jr-mail-empty {
+	text-align: center;
+	padding: 60px 24px;
+	color: var(--rr-text-secondary);
+	font-size: 14px;
+}
+.jr-mail-empty h3 {
+	color: var(--rr-text-primary);
+}
+.jr-mail-detail {
+	padding: 4px 10px 20px;
+	overflow-wrap: anywhere;
+}
+.jr-mail-body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font: 13px/1.7 var(--rr-font-family, sans-serif);
+	max-height: 380px;
+	overflow: auto;
+	padding: 16px 0;
+}
+.jr-mail-analysis {
+	margin-top: 20px;
+	padding: 16px;
+	border-radius: 12px;
+	background: #edf8fb;
+	font-size: 13px;
+	line-height: 1.6;
+}
+.jr-mail-analysis blockquote {
+	margin: 12px 0;
+	color: var(--rr-text-secondary);
+}
+.jr-feature-intro h3 {
+	font-size: 24px;
+	letter-spacing: -0.5px;
+	margin: 10px 0;
+}
+.jr-feature-intro p {
+	color: var(--rr-text-secondary);
+	line-height: 1.65;
+}
+.jr-resume-editor ul {
+	padding-left: 18px;
+	font-size: 13px;
+	line-height: 1.7;
+}
+.jr-resume-text {
+	width: 100%;
+	min-height: 470px;
+	resize: vertical;
+	box-sizing: border-box;
+	border: 1px solid var(--rr-border);
+	border-radius: 10px;
+	padding: 20px;
+	color: var(--rr-text-primary);
+	background: #fff;
+	font: 13px/1.7 var(--rr-font-family, sans-serif);
+}
+@container jobradar (max-width:850px) {
+	.jr-email-grid {
+		grid-template-columns: 1fr;
+	}
+	.jr-email-page {
+		padding: 22px 16px 40px;
+	}
+	.jr-connect-card {
+		padding: 18px 4px;
+	}
+	.jr-connect-card h2 {
+		font-size: 25px;
+	}
+}
+.jr-email-input {
+	border: 1px solid var(--rr-border);
+	border-radius: 9px;
+	padding: 10px 12px;
+	min-width: 0;
+	box-sizing: border-box;
+	background: var(--rr-bg-surface);
+	color: var(--rr-text-primary);
+	font: 13px/1.5 var(--rr-font-family, sans-serif);
+}

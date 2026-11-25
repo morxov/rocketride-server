@@ -6,7 +6,7 @@
 /**
  * JobRadar — a job-search dashboard that surfaces what is new and worth your
  * time: merged duplicates, freshness and ghost checks, a tracker with
- * follow-ups, and a Gemini assistant over your own data in Redis.
+ * follow-ups, and a Gemini assistant over your own data in the file store.
  */
 
 import React from 'react';
@@ -17,6 +17,7 @@ import { Dashboard } from './screens/Dashboard';
 import { JobPanel } from './screens/JobPanel';
 import { Jobs } from './screens/Jobs';
 import { Profile } from './screens/Profile';
+import { Email } from './screens/Email';
 import { Tracker } from './screens/Tracker';
 import { localDate } from './lib/store';
 import { Poller, useApp, type View } from './state';
@@ -40,6 +41,7 @@ const TopNav: React.FC = () => {
 		{ id: 'jobs', label: 'Job Matches', icon: 'jobs', count: fresh },
 		{ id: 'tracker', label: 'Job Tracker', icon: 'tracker', count: due },
 		{ id: 'assistant', label: 'Assistant', icon: 'assistant' },
+		{ id: 'email', label: 'Email', icon: 'mail' },
 		{ id: 'profile', label: 'Profile', icon: 'profile' },
 	];
 	return (
@@ -117,6 +119,7 @@ const Content: React.FC = () => {
 					<Assistant />
 				</div>
 				{view === 'profile' && <Profile />}
+				<div style={{ height: '100%', display: view === 'email' ? 'block' : 'none' }}><Email /></div>
 				{view !== 'jobs' && <JobPanel />}
 				<Toasts toasts={toasts} onOpen={(fp) => openJob(fp)} />
 			</div>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type IconName = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile' | 'arrow' | 'check' | 'file' | 'refresh' | 'shield';
+export type IconName = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile' | 'arrow' | 'check' | 'file' | 'refresh' | 'shield' | 'mail';
 
 const paths: Record<IconName, React.ReactNode> = {
 	dashboard: (
@@ -33,6 +33,12 @@ const paths: Record<IconName, React.ReactNode> = {
 		<>
 			<circle cx="12" cy="8" r="4" />
 			<path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+		</>
+	),
+	mail: (
+		<>
+			<rect x="3" y="5" width="18" height="14" rx="3" />
+			<path d="m3 7 9 6 9-6" />
 		</>
 	),
 	arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,

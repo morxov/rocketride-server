@@ -1,5 +1,5 @@
 /**
- * Job and tracker actions shared by every screen: write to Redis, then patch
+ * Job and tracker actions shared by every screen: write to the file store, then patch
  * local state so the screen updates without a full reload.
  */
 
@@ -16,7 +16,7 @@ export function useJobActions() {
 
 	const setStatus = useCallback(
 		async (job: Pick<ScoredJob, 'fp' | 'title' | 'company' | 'url' | 'locations'>, status: Status) => {
-			if (!client) return;
+			if (!client) return false;
 			try {
 				const existing = app.user?.tracker.find((t) => t.fp === job.fp);
 				const item = await track(client, job, status, existing);
@@ -24,8 +24,10 @@ export function useJobActions() {
 				if (status === 'applied' || status === 'interview' || status === 'assessment') await reloadUser(); // picks up the new reminder
 				else if (status === 'offer' || status === 'closed') patchUser((u) => ({ ...u, reminders: u.reminders.filter((r) => !(r.source === 'app' && r.fp === job.fp)) })); // track() deleted it
 				toast({ variant: 'success', title: status === 'saved' ? 'Saved to tracker' : 'Tracker updated', body: `${job.title} at ${job.company}: ${status === 'applied' ? 'applied. A follow-up reminder is set for 7 days from now.' : status}` }, 5000);
+				return true;
 			} catch (e) {
 				fail(e);
+				return false;
 			}
 		},
 		[client, app.user, patchUser, reloadUser],

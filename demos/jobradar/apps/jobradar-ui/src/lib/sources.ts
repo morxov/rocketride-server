@@ -125,7 +125,7 @@ export function normalizeTitle(s: string): string {
 		.trim();
 }
 
-/** Small stable hash (FNV-1a, base36) so fingerprints are short Redis keys. */
+/** Small stable hash (FNV-1a, base36) so fingerprints are short cache keys. */
 export function hash(s: string): string {
 	let h = 0x811c9dc5;
 	for (let i = 0; i < s.length; i++) {
