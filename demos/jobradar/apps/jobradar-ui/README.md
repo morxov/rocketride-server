@@ -86,6 +86,35 @@ All LLM nodes use Gemini 3.5 Flash Lite with `${ROCKETRIDE_GEMINI_KEY}`; Firecra
 Setup, checks and run steps are in `../../README.md` (the
 `demos/jobradar/README.md` file at the top of this demo).
 
+### Cloud deployment readiness
+
+A RocketRide Cloud deployment was attempted on November 24, 2026. Cloud sign-in
+and the deployment connection succeeded, but the server rejected the upload
+because the organization has no registered developer id. No app version was
+deployed or published.
+
+The cloud catalog also lacked `tool_redis`; starting the tools pipeline returned
+`The service tool_redis was not found`. The existing Redis hosts are
+`127.0.0.1:6379`, which refer to the engine's machine. A cloud engine cannot use
+the Redis container running on this Mac through that address.
+
+Before a working cloud deployment, the organization needs a registered developer
+id, a cloud engine that includes `tool_redis`, a reachable Redis instance, and
+the Gemini and Firecrawl secrets configured on that engine. If the pipelines
+are changed for the cloud connection, assign new `project_id` values.
+
+CLI connection gotcha: when the development `.env` contains `MYAPIKEY`, that
+value takes precedence over the deployment credential inside the SDK. Clear it
+for the cloud command only, preserving the local `.env`:
+
+```sh
+ROCKETRIDE_APIKEY='' ./node_modules/.bin/rocketride login --deploy --uri https://api.rocketride.ai --apikey ''
+ROCKETRIDE_APIKEY='' ./node_modules/.bin/rocketride app deploy jobradar-ui
+```
+
+Cloud deployment credentials remain in the ignored workspace `.env`. Never
+commit them or the engine's provider keys.
+
 ## Demo script (about 4 minutes)
 
 1. **Profile and sources:** drop your resume, or press **Try it with a sample resume**. The profile appears in a few seconds and the first check runs.
