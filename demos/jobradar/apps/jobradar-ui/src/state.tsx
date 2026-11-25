@@ -9,7 +9,7 @@ import { useShellConnection } from 'shell';
 import type { ScoredJob } from './lib/match';
 import { detectClosed, loadUser, markAllSeen, refresh, scoreAll, startSession, touchSession, writeDigest, type Entry, type RefreshResult, type TrackItem, type UserData } from './lib/store';
 
-export type View = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile' | 'email';
+export type View = 'dashboard' | 'jobs' | 'tracker' | 'assistant' | 'profile' | 'email' | 'career';
 
 export interface Toast {
 	id: number;

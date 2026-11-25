@@ -5,6 +5,7 @@ import { dataStore } from '../lib/storage';
 import { downloadText, printResume, readTailoredResume, sourceHash, type TailoredResume } from '../lib/documents';
 import { toast, useApp } from '../state';
 import { s } from '../ui';
+import { KeywordAudit } from './CareerForms';
 
 export const ResumeEditor: React.FC<{ fp: string; title: string; company: string; loadDescription: () => Promise<string> }> = ({ fp, title, company, loadDescription }) => {
 	const { client, user, setView, openJob } = useApp();
@@ -70,6 +71,7 @@ export const ResumeEditor: React.FC<{ fp: string; title: string; company: string
 				<h3>Make your experience relevant.</h3>
 				<p>Emphasize experience you already have, with wording and priorities tailored to {company}.</p>
 			</div>
+			<KeywordAudit resume={text || source} loadDescription={loadDescription} />
 			{error && <Banner variant="error">{error}</Banner>}
 			{!source ? (
 				<>

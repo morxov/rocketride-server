@@ -1169,3 +1169,537 @@ button.jr-metric:hover {
 	color: var(--rr-text-primary);
 	font: 13px/1.5 var(--rr-font-family, sans-serif);
 }
+
+/* Career tools extends the existing cyan and warm neutral app palette. */
+.jr-career-tabs {
+	display: flex;
+	gap: 6px;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--rr-border);
+	margin: 4px 0 26px;
+}
+.jr-career-tabs button {
+	flex-shrink: 0;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	padding: 14px 20px;
+	color: var(--rr-text-secondary);
+	font: 600 14px var(--rr-font-family, sans-serif);
+	cursor: pointer;
+}
+.jr-career-tabs button[aria-selected='true'] {
+	border-bottom-color: #5695a7;
+	color: #286c80;
+	background: #eaf5f8;
+}
+.jr-career-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+.jr-career-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+.jr-career-wide-grid {
+	gap: 24px;
+	align-items: start;
+}
+.jr-career-card-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 370px), 1fr));
+	gap: 22px;
+	align-items: start;
+}
+.jr-career-toolbar {
+	display: flex;
+	justify-content: space-between;
+	gap: 20px;
+	align-items: center;
+}
+.jr-career-toolbar h2 {
+	margin: 0 0 7px;
+	font-size: 26px;
+	letter-spacing: -0.5px;
+}
+.jr-career-toolbar p {
+	margin: 0;
+	color: var(--rr-text-secondary);
+	line-height: 1.6;
+}
+.jr-career-form {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 8px 0;
+}
+.jr-career-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	color: var(--rr-text-primary);
+	font-size: 13px;
+	font-weight: 600;
+}
+.jr-career-field input,
+.jr-career-field textarea,
+.jr-career-field select,
+.jr-career-input {
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--rr-border);
+	border-radius: 8px;
+	padding: 10px 12px;
+	background: var(--rr-bg-paper, #fff);
+	color: var(--rr-text-primary);
+	font: 400 13px/1.6 var(--rr-font-family, sans-serif);
+}
+.jr-career-field textarea {
+	resize: vertical;
+}
+.jr-career-input {
+	max-width: 300px;
+}
+.jr-career-primary {
+	background: #548fa1;
+	color: white;
+	border: 1px solid #548fa1;
+	border-radius: 7px;
+	padding: 9px 16px;
+	font: 600 13px var(--rr-font-family, sans-serif);
+	cursor: pointer;
+}
+.jr-career-primary:hover {
+	background: #39768a;
+}
+.jr-career-primary:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+.jr-career-text-button {
+	padding: 4px 8px;
+	border: 0;
+	background: transparent;
+	color: var(--rr-text-secondary);
+	cursor: pointer;
+	font-size: 18px;
+}
+.jr-career-stats {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+}
+.jr-career-stat {
+	padding: 24px;
+	border: 1px solid #d9eaee;
+	border-radius: 16px;
+	background: #e8f5f8;
+}
+.jr-career-stat:nth-child(2) {
+	background: #f1edf9;
+	border-color: #e6dff3;
+}
+.jr-career-stat:nth-child(3) {
+	background: #fcf3df;
+	border-color: #f0e5c9;
+}
+.jr-career-stat:nth-child(4) {
+	background: #eaf4e9;
+	border-color: #dcead9;
+}
+.jr-career-stat span {
+	display: block;
+	font-size: 13px;
+	color: #56636a;
+}
+.jr-career-stat strong {
+	display: block;
+	font-size: 36px;
+	letter-spacing: -1px;
+	margin-top: 12px;
+}
+.jr-funnel {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 20px 0;
+}
+.jr-funnel > div {
+	display: grid;
+	grid-template-columns: 75px 1fr 32px;
+	gap: 14px;
+	align-items: center;
+	font-size: 13px;
+}
+.jr-funnel > div > div {
+	background: #edf1f4;
+	height: 23px;
+	border-radius: 7px;
+	overflow: hidden;
+}
+.jr-funnel i {
+	display: block;
+	height: 100%;
+	border-radius: 7px;
+	background: #80b4c3;
+}
+.jr-insight-rates {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px;
+	border-top: 1px solid var(--rr-border);
+	padding: 4px 0;
+}
+.jr-insight-rates p {
+	font-size: 12px;
+	color: var(--rr-text-secondary);
+}
+.jr-insight-rates strong {
+	font-size: 20px;
+	display: block;
+	color: var(--rr-text-primary);
+	margin-bottom: 7px;
+}
+.jr-weekly-goal strong {
+	font-size: 42px;
+	letter-spacing: -1px;
+}
+.jr-weekly-goal strong span {
+	font-size: 24px;
+	color: var(--rr-text-secondary);
+}
+.jr-weekly-goal p {
+	color: var(--rr-text-secondary);
+	font-size: 13px;
+}
+.jr-goal-form {
+	display: flex;
+	gap: 12px;
+	align-items: end;
+	margin: 20px 0;
+}
+.jr-goal-form input {
+	max-width: 130px;
+}
+.jr-career-stack progress {
+	width: 100%;
+	height: 12px;
+	border: 0;
+	border-radius: 8px;
+	overflow: hidden;
+	accent-color: #5695a7;
+}
+.jr-career-stack progress::-webkit-progress-bar {
+	background: #edf2f5;
+}
+.jr-career-stack progress::-webkit-progress-value {
+	background: #75a9b8;
+	border-radius: 8px;
+}
+.jr-cadence {
+	display: flex;
+	justify-content: space-around;
+	gap: 16px;
+	padding: 24px 10px 14px;
+}
+.jr-cadence > div {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	gap: 10px;
+	width: 12%;
+	font-size: 12px;
+}
+.jr-cadence-track {
+	height: 125px;
+	width: 100%;
+	max-width: 65px;
+	background: #f1f5f7;
+	border-radius: 8px;
+	display: flex;
+	align-items: end;
+	overflow: hidden;
+}
+.jr-cadence-track i {
+	display: block;
+	width: 100%;
+	border-radius: 8px 8px 0 0;
+	background: #83b7c5;
+}
+.jr-cadence span {
+	color: var(--rr-text-secondary);
+	white-space: nowrap;
+}
+.jr-career-list-button,
+.jr-career-list-row {
+	display: flex;
+	width: 100%;
+	gap: 14px;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 0;
+	border: 0;
+	border-bottom: 1px solid var(--rr-border);
+	background: transparent;
+	color: var(--rr-text-primary);
+	font: 13px/1.5 var(--rr-font-family, sans-serif);
+	text-align: left;
+}
+.jr-career-list-button {
+	cursor: pointer;
+}
+.jr-career-list-button small {
+	display: block;
+	color: var(--rr-text-secondary);
+}
+.jr-overdue {
+	color: #a04436 !important;
+}
+.jr-career-pill {
+	border-radius: 6px;
+	padding: 5px 9px;
+	background: #edf5f7;
+	color: #47788a;
+	font-size: 12px;
+}
+.jr-career-note {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	line-height: 1.7;
+	font-size: 13px;
+}
+.jr-career-inline-confirm {
+	margin-top: 14px;
+	background: #fff5e4;
+	padding: 14px;
+	border-radius: 8px;
+	font-size: 13px;
+}
+.jr-career-inline-confirm p {
+	margin-top: 0;
+}
+.jr-application-plan,
+.jr-keyword-audit {
+	border: 1px solid var(--rr-border);
+	border-radius: 12px;
+	padding: 18px;
+	margin: 18px 0;
+}
+.jr-application-plan h3,
+.jr-keyword-audit h3 {
+	font-size: 16px;
+	margin: 0 0 12px;
+}
+.jr-checklist {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 12px 0;
+}
+.jr-checklist > div {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 13px;
+}
+.jr-checklist label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.jr-checklist input {
+	accent-color: #568e9e;
+	width: 16px;
+	height: 16px;
+}
+.jr-keyword-groups {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+.jr-keyword-groups h4 {
+	margin: 14px 0 10px;
+	font-size: 12px;
+}
+.jr-keyword-chip {
+	display: inline-block;
+	padding: 5px 8px;
+	border-radius: 6px;
+	font-size: 12px;
+	margin: 0 6px 6px 0;
+}
+.jr-keyword-present {
+	background: #e3f1e7;
+	color: #386447;
+}
+.jr-keyword-missing {
+	background: #fff0d9;
+	color: #805d2b;
+}
+.jr-career-empty {
+	text-align: center;
+	padding: 48px 20px;
+	color: var(--rr-text-secondary);
+	font-size: 14px;
+}
+.jr-career-empty h3 {
+	color: var(--rr-text-primary);
+	font-size: 20px;
+}
+.jr-interview-event {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 18px;
+	padding: 18px 0;
+	border-bottom: 1px solid var(--rr-border);
+	font-size: 13px;
+}
+.jr-interview-event > div:first-child {
+	flex: 1;
+	min-width: 200px;
+}
+.jr-interview-event p {
+	margin: 7px 0;
+	overflow-wrap: anywhere;
+}
+.jr-interview-event .jr-career-inline-confirm {
+	width: 100%;
+}
+.jr-question-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 22px;
+}
+.jr-question-list button {
+	display: flex;
+	align-items: start;
+	gap: 14px;
+	padding: 16px;
+	background: #fff;
+	border: 1px solid var(--rr-border);
+	border-radius: 10px;
+	color: var(--rr-text-primary);
+	text-align: left;
+	cursor: pointer;
+	font: 13px/1.6 var(--rr-font-family, sans-serif);
+}
+.jr-question-list button.is-selected {
+	border-color: #5b9aab;
+	background: #edf8fb;
+}
+.jr-question-list button > span {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
+	width: 25px;
+	height: 25px;
+	border-radius: 8px;
+	background: #e0eef2;
+	color: #3a7484;
+}
+.jr-question-list small {
+	display: block;
+	color: var(--rr-text-secondary);
+	margin-top: 5px;
+}
+.jr-practice-feedback {
+	border: 1px solid #dae9ef;
+	background: #f0f8fb;
+	border-radius: 12px;
+	padding: 20px;
+	font-size: 13px;
+	line-height: 1.7;
+}
+.jr-story {
+	padding: 15px 0;
+	border-bottom: 1px solid var(--rr-border);
+	font-size: 13px;
+	line-height: 1.7;
+}
+.jr-story blockquote {
+	margin: 10px 0;
+	border-left: 3px solid #a0c4cf;
+	padding-left: 14px;
+	color: var(--rr-text-secondary);
+}
+.jr-career-bullets {
+	padding-left: 20px;
+	font-size: 13px;
+	line-height: 1.9;
+}
+.jr-saved-answer {
+	padding: 20px 0;
+	border-bottom: 1px solid var(--rr-border);
+}
+.jr-saved-answer h3 {
+	font-size: 15px;
+	line-height: 1.5;
+	margin: 8px 0;
+}
+.jr-saved-answer p {
+	font-size: 13px;
+	line-height: 1.65;
+	white-space: pre-wrap;
+	display: -webkit-box;
+	-webkit-line-clamp: 5;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.jr-saved-answer small {
+	display: block;
+	color: var(--rr-text-secondary);
+	margin-bottom: 12px;
+}
+.jr-answer-limit {
+	display: flex;
+	gap: 15px;
+	align-items: end;
+}
+.jr-answer-limit input {
+	width: 110px;
+}
+@container jobradar (max-width:1050px) {
+	.jr-career-wide-grid {
+		grid-template-columns: 1fr;
+	}
+	.jr-career-stat {
+		padding: 18px;
+	}
+}
+@container jobradar (max-width:650px) {
+	.jr-career-stats {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.jr-career-grid {
+		grid-template-columns: 1fr;
+	}
+	.jr-career-toolbar {
+		align-items: start;
+		flex-direction: column;
+	}
+	.jr-keyword-groups {
+		grid-template-columns: 1fr;
+	}
+	.jr-career-tabs button {
+		padding: 12px;
+	}
+	.jr-career-stat strong {
+		font-size: 30px;
+	}
+	.jr-answer-limit {
+		align-items: start;
+		flex-direction: column;
+	}
+}
+fieldset.jr-career-form {
+	border: 0;
+	margin: 0;
+	min-inline-size: 0;
+}

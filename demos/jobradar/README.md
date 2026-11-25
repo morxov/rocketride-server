@@ -9,6 +9,15 @@ See `apps/jobradar-ui/README.md` for architecture, email permissions, persistenc
 resume exports, migration details, and current limits. The original Redis demo is
 preserved as a migration fixture. Keep this demo out of upstream PR #3049.
 
+## Career tools
+
+This version adds manual job capture and archived descriptions, application plans,
+networking contacts and outreach drafts, interview scheduling/calendar export,
+resume-grounded practice, a reusable answer bank, keyword coverage, funnel
+analytics, weekly goals, and tracker CSV export. See the
+[competitive review](apps/jobradar-ui/docs/COMPETITIVE_RESEARCH.md) for official
+sources, the feature map, and the limits of each implementation.
+
 ## Local setup
 
 You need Node.js 22.15 or newer, pnpm, a running RocketRide engine, and Gemini and
@@ -90,6 +99,7 @@ From this demo's root, the live cloud check uses the deployment connection:
 
 ```sh
 node --env-file=.env scripts/check-jobradar-cloud.mjs
+node --env-file=.env scripts/check-jobradar-career.mjs
 ```
 
 It performs paid-provider requests with your configured Gemini key using fictional

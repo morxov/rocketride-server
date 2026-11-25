@@ -5,6 +5,8 @@
 import React, { useState } from 'react';
 import { Button, ConfirmDialog, EmptyState, StatusBadge } from 'shell';
 import { useJobActions } from '../actions';
+import { JobCapture } from './CareerForms';
+import { downloadFile, trackerCsv } from '../lib/career';
 import { ago } from '../lib/match';
 import { STATUSES, dismissReminder, snoozeReminder, type Reminder, type TrackItem, localDate } from '../lib/store';
 import { toast, useApp } from '../state';
@@ -25,6 +27,7 @@ export const Tracker: React.FC = () => {
 	const app = useApp();
 	const { setStatus, remove } = useJobActions();
 	const { user, client } = app;
+	const [adding, setAdding] = useState(false);
 	const [removing, setRemoving] = useState<TrackItem | null>(null);
 	if (!user || !client) return null;
 
@@ -50,8 +53,22 @@ export const Tracker: React.FC = () => {
 	return (
 		<div style={s.page}>
 			<div style={s.inner}>
-				<ContentHeader title="Job Tracker" subtitle="Every application, follow-up, and reminder in one place. Save a role to start, then update it as you go." />
+				<ContentHeader
+					title="Job Tracker"
+					subtitle="Every role and next step in one place. High-priority roles and nearest deadlines come first."
+					actions={
+						<>
+							<Button small variant="secondary" disabled={!user.tracker.length} onClick={() => downloadFile(trackerCsv(user.tracker), `jobradar-applications-${localDate()}.csv`, 'text/csv;charset=utf-8')}>
+								Export CSV
+							</Button>
+							<Button small onClick={() => setAdding(!adding)}>
+								{adding ? 'Close job form' : 'Add any job'}
+							</Button>
+						</>
+					}
+				/>
 				<div style={s.stack}>
+					{adding && <JobCapture onClose={() => setAdding(false)} />}
 					{user.tracker.length === 0 ? (
 						<EmptyState
 							title="Nothing tracked yet"
@@ -65,7 +82,8 @@ export const Tracker: React.FC = () => {
 					) : (
 						<div style={tk.board}>
 							{STATUSES.map((col, ci) => {
-								const items = user.tracker.filter((t) => t.status === col.id);
+								const priorityRank = { low: 0, normal: 1, high: 2 };
+								const items = user.tracker.filter((t) => t.status === col.id).sort((a, b) => priorityRank[b.priority ?? 'normal'] - priorityRank[a.priority ?? 'normal'] || (a.deadline || '9999').localeCompare(b.deadline || '9999') || b.updatedAt - a.updatedAt);
 								return (
 									<div key={col.id} style={tk.col}>
 										<div style={tk.colHead}>
@@ -81,6 +99,17 @@ export const Tracker: React.FC = () => {
 														<div style={tk.cardMeta}>{t.company}</div>
 														<div style={tk.cardMeta}>{t.appliedAt ? `Applied ${ago(t.appliedAt)}` : `Added ${ago(t.createdAt)}`}</div>
 													</button>
+													{t.priority === 'high' && <StatusBadge variant="info">High priority</StatusBadge>}
+													{t.deadline && (
+														<div style={tk.cardMeta} className={t.deadline < todayIso && t.status === 'saved' ? 'jr-overdue' : ''}>
+															Deadline {t.deadline}
+														</div>
+													)}
+													{!!t.checklist?.length && (
+														<div style={tk.cardMeta}>
+															Prepared {t.checklist.filter((step) => step.done).length}/{t.checklist.length}
+														</div>
+													)}
 													{t.outcome === 'posting_closed' && (
 														<div style={{ marginTop: 4 }}>
 															<StatusBadge variant="warning">Posting closed</StatusBadge>
@@ -116,7 +145,7 @@ export const Tracker: React.FC = () => {
 					<div style={s.grid2}>
 						<Card header={`Reminders (${user.reminders.length})`} noBodyPadding>
 							{user.reminders.length === 0 ? (
-								<div style={{ padding: 14, ...s.muted }}>No reminders. Ask the assistant to remind you about anything.</div>
+								<div style={{ padding: 14, ...s.muted }}>No follow-up reminders. Mark a role Applied or Interview to schedule one.</div>
 							) : (
 								user.reminders.map((r) => (
 									<div key={r.id} style={s.listRow}>
@@ -139,9 +168,9 @@ export const Tracker: React.FC = () => {
 								))
 							)}
 						</Card>
-						<Card header={`Notes from the assistant (${user.notes.length})`} noBodyPadding>
+						<Card header={`Saved notes (${user.notes.length})`} noBodyPadding>
 							{user.notes.length === 0 ? (
-								<div style={{ padding: 14, ...s.muted }}>Ask the assistant to "note that..." and it lands here.</div>
+								<div style={{ padding: 14, ...s.muted }}>Application notes are available on each role's Track tab.</div>
 							) : (
 								user.notes.map((n) => (
 									<div key={n.id} style={s.listRow}>

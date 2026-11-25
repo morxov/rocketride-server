@@ -147,7 +147,7 @@ export const Email: React.FC = () => {
 						<span className="jr-connect-icon">
 							<Icon name="mail" size={32} />
 						</span>
-						<span className="jr-eyebrow">Email, connected</span>
+						<span className="jr-eyebrow">Connect your email</span>
 						<h2>One place for your next opportunity.</h2>
 						<p>Connect Gmail to find application updates, read recruiter messages, and review suggested tracker changes.</p>
 						<Button

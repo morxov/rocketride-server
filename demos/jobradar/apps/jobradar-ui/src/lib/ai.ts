@@ -64,7 +64,7 @@ export async function importResume(client: RocketRideClient, file: File): Promis
 	};
 }
 
-export type WriterTask = 'fit' | 'cover' | 'followup' | 'ask' | 'resume' | 'mail' | 'assistant';
+export type WriterTask = 'fit' | 'cover' | 'followup' | 'ask' | 'resume' | 'mail' | 'assistant' | 'interview_prep' | 'practice_feedback' | 'outreach' | 'application_answer';
 
 /** Ask the writer pipeline for an explanation or a draft. Returns Markdown or plain text. */
 export async function write(client: RocketRideClient, task: WriterTask, facts: Record<string, unknown>): Promise<string> {

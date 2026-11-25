@@ -3,6 +3,7 @@
 import type { RocketRideClient } from 'rocketride';
 import { DEFAULT_PREFS, passesFilters, scoreJob, type Prefs, type Profile, type ScoredJob } from './match';
 import { dataStore } from './storage';
+import { normalizeCareer, type CareerData, type ChecklistItem } from './career';
 import { fetchJobs, isOnBoard, postingKey, type FetchReport, type Job } from './sources';
 
 const DAY = 86400;
@@ -56,6 +57,10 @@ export interface TrackItem {
 	appliedAt?: number;
 	history: { status: Status; at: number }[];
 	notes: string;
+	description?: string;
+	priority?: 'low' | 'normal' | 'high';
+	deadline?: string;
+	checklist?: ChecklistItem[];
 	outcome?: 'rejected' | 'withdrawn' | 'accepted' | 'declined' | 'posting_closed';
 }
 
@@ -74,6 +79,7 @@ export interface Note {
 }
 
 export interface UserData {
+	career: CareerData;
 	profile: Profile | null;
 	resume: string;
 	prefs: Prefs;
@@ -113,18 +119,13 @@ export async function loadUser(client: RocketRideClient): Promise<UserData> {
 	const [keys, seenKeys] = await Promise.all([user.scanAll(), seenNode.scanAll()]);
 
 	const pick = (prefix: string) => keys.filter((k) => k.startsWith(prefix));
-	const [profile, resume, prefs, appliedThisWeek] = await Promise.all([
-		user.getJson<Profile>('profile'),
-		user.get('resume').then((r) => r.value ?? ''),
-		user.getJson<Prefs>('prefs'),
-		user.get(`stat:applied:${isoWeek()}`).then((r) => Number(r.value ?? 0)),
-	]);
+	const [profile, resume, prefs, appliedThisWeek, career] = await Promise.all([user.getJson<Profile>('profile'), user.get('resume').then((r) => r.value ?? ''), user.getJson<Prefs>('prefs'), user.get(`stat:applied:${isoWeek()}`).then((r) => Number(r.value ?? 0)), user.getJson<CareerData>('career')]);
 	const tracker = (await Promise.all(pick('app:').map((k) => user.getJson<TrackItem>(k)))).filter(Boolean) as TrackItem[];
 	const appReminders = await Promise.all(
 		pick('remind:').map(async (k) => {
 			const r = await user.getJson<{ fp?: string; text: string; due: string }>(k);
 			return r ? ({ id: k, ...r, source: 'app' } as Reminder) : null;
-		}),
+		})
 	);
 	const noteKeys = pick('notes:');
 	const noteValues = await Promise.all(noteKeys.map((k) => user.get(k)));
@@ -144,6 +145,7 @@ export async function loadUser(client: RocketRideClient): Promise<UserData> {
 	reminders.sort((a, b) => a.due.localeCompare(b.due));
 
 	return {
+		career: normalizeCareer(career),
 		profile,
 		resume,
 		prefs: { ...DEFAULT_PREFS, ...(prefs ?? {}) },
@@ -159,6 +161,13 @@ export async function loadUser(client: RocketRideClient): Promise<UserData> {
 export const saveProfile = (c: RocketRideClient, p: Profile) => dataStore(c, 'user').setJson('profile', p, 0);
 export const saveResume = (c: RocketRideClient, text: string) => dataStore(c, 'user').set('resume', text.slice(0, 40000), 0);
 export const savePrefs = (c: RocketRideClient, p: Prefs) => dataStore(c, 'user').setJson('prefs', p, 0);
+
+export const changeCareer = (c: RocketRideClient, update: (current: CareerData) => CareerData) => dataStore(c, 'user').updateJson<CareerData>('career', (current) => update(normalizeCareer(current)));
+export const patchTracked = (c: RocketRideClient, fp: string, patch: Pick<TrackItem, 'deadline' | 'priority' | 'checklist'>) =>
+	dataStore(c, 'user').updateJson<TrackItem>(`app:${fp}`, (current) => {
+		if (!current) throw new Error('Save this job to the tracker first.');
+		return { ...current, ...patch, updatedAt: nowSec() };
+	});
 
 /** A gap longer than this between two moments of activity starts a new visit. */
 const VISIT_GAP = 2 * 3600;
@@ -214,9 +223,7 @@ export const unhideJob = (c: RocketRideClient, fp: string) => dataStore(c, 'seen
 export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'title' | 'company' | 'url' | 'locations'>, status: Status, existing?: TrackItem): Promise<TrackItem> {
 	const user = dataStore(c, 'user');
 	const now = nowSec();
-	const item: TrackItem = existing
-		? { ...existing, status, updatedAt: now, history: [...existing.history, { status, at: now }] }
-		: { fp: job.fp, title: job.title, company: job.company, url: job.url, location: job.locations.slice(0, 2).join(', '), status, createdAt: now, updatedAt: now, history: [{ status, at: now }], notes: '' };
+	const item: TrackItem = existing ? { ...existing, status, updatedAt: now, history: [...existing.history, { status, at: now }] } : { fp: job.fp, title: job.title, company: job.company, url: job.url, location: job.locations.slice(0, 2).join(', '), status, createdAt: now, updatedAt: now, history: [{ status, at: now }], notes: '' };
 	if (status === 'applied' && !item.appliedAt) {
 		item.appliedAt = now;
 		await user.incr(`stat:applied:${isoWeek()}`);
@@ -330,7 +337,7 @@ export async function refresh(c: RocketRideClient, user: UserData): Promise<Refr
 				shards.map(async (s, i) => {
 					for (const [fp, e] of Object.entries(s)) if (now - e.l > INDEX_KEEP) delete s[fp];
 					if (JSON.stringify(s) !== before[i]) await jobsNode.setJson(`idx:${i}`, s, 0);
-				}),
+				})
 			);
 			if (!initialized) await jobsNode.set('meta:initialized', String(now), 0, 'NX');
 			wroteIndex = true;
@@ -341,9 +348,7 @@ export async function refresh(c: RocketRideClient, user: UserData): Promise<Refr
 
 	const entries: Entry[] = report.jobs.map((job) => ({ ...job, firstSeen: firstSeen.get(job.fp) ?? now }));
 
-	const [scannedToday, newToday, dupesToday] = wroteIndex
-		? await Promise.all([bump(c, 'scanned', report.scanned), bump(c, 'new', brandNew.size), bump(c, 'duplicates', report.duplicates)])
-		: await Promise.all([bump(c, 'scanned', 0), bump(c, 'new', 0), bump(c, 'duplicates', 0)]);
+	const [scannedToday, newToday, dupesToday] = wroteIndex ? await Promise.all([bump(c, 'scanned', report.scanned), bump(c, 'new', brandNew.size), bump(c, 'duplicates', report.duplicates)]) : await Promise.all([bump(c, 'scanned', 0), bump(c, 'new', 0), bump(c, 'duplicates', 0)]);
 
 	return { entries, brandNew, scanned: report.scanned, duplicates: report.duplicates, errors: report.errors, openFps: report.openFps, closedFps: report.closedFps, boardsChecked: report.boardsChecked, stats: { scannedToday, newToday, dupesToday }, wroteIndex, firstRun: !initialized, at: now };
 }
@@ -400,7 +405,7 @@ export async function replayRecent(c: RocketRideClient, hours: number): Promise<
 					changed = true;
 				}
 			if (changed) await node.setJson(`idx:${i}`, s, 0);
-		}),
+		})
 	);
 	await dataStore(c, 'user').setJson('state', { since: cutoff, lastActive: nowSec() }, 0);
 	return removed;
@@ -449,8 +454,14 @@ export async function writeDigest(c: RocketRideClient, user: UserData, jobs: Sco
 		calendar: upcoming,
 		profile: user.profile && { name: user.profile.name, headline: user.profile.headline, level: user.profile.level, graduation: user.profile.graduation, target_roles: user.profile.target_roles, skills: user.profile.skills.slice(0, 15), locations: user.profile.locations, evidence: user.profile.evidence.slice(0, 8) },
 		preferences: { roles: user.prefs.roles, locations: user.prefs.locations, remote_ok: user.prefs.remoteOk, needs_sponsorship: user.prefs.needsSponsorship, min_score: user.prefs.minScore },
-		new_matches: jobs.filter((j) => j.flags.includes('new') && j.score >= user.prefs.minScore).slice(0, 15).map(fmt),
-		top_matches: jobs.filter((j) => !tracked.has(j.fp) && !user.hidden.has(j.fp)).slice(0, 12).map(fmt),
+		new_matches: jobs
+			.filter((j) => j.flags.includes('new') && j.score >= user.prefs.minScore)
+			.slice(0, 15)
+			.map(fmt),
+		top_matches: jobs
+			.filter((j) => !tracked.has(j.fp) && !user.hidden.has(j.fp))
+			.slice(0, 12)
+			.map(fmt),
 		tracker: user.tracker.map((t) => ({ fp: t.fp, title: t.title, company: t.company, status: t.status, outcome: t.outcome ?? null, applied: t.appliedAt ? localDate(new Date(t.appliedAt * 1000)) : null, updated: localDate(new Date(t.updatedAt * 1000)), notes: t.notes || null, url: t.url })),
 		reminders: user.reminders.map((r) => ({ text: r.text, due: r.due })),
 		notes: user.notes.map((n) => n.text).slice(0, 20),

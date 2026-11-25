@@ -19,6 +19,7 @@ import { Jobs } from './screens/Jobs';
 import { Profile } from './screens/Profile';
 import { Email } from './screens/Email';
 import { Tracker } from './screens/Tracker';
+import { CareerHub } from './screens/CareerHub';
 import { localDate } from './lib/store';
 import { Poller, useApp, type View } from './state';
 import { Toasts } from './ui';
@@ -42,6 +43,7 @@ const TopNav: React.FC = () => {
 		{ id: 'tracker', label: 'Job Tracker', icon: 'tracker', count: due },
 		{ id: 'assistant', label: 'Assistant', icon: 'assistant' },
 		{ id: 'email', label: 'Email', icon: 'mail' },
+		{ id: 'career', label: 'Career tools', icon: 'file' },
 		{ id: 'profile', label: 'Profile', icon: 'profile' },
 	];
 	return (
@@ -119,6 +121,7 @@ const Content: React.FC = () => {
 					<Assistant />
 				</div>
 				{view === 'profile' && <Profile />}
+				{view === 'career' && <CareerHub />}
 				<div style={{ height: '100%', display: view === 'email' ? 'block' : 'none' }}><Email /></div>
 				{view !== 'jobs' && <JobPanel />}
 				<Toasts toasts={toasts} onOpen={(fp) => openJob(fp)} />

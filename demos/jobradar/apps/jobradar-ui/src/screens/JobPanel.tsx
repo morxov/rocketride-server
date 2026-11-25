@@ -14,6 +14,7 @@ import { toast, useApp } from '../state';
 import { JobFlags, s, scoreColor } from '../ui';
 import { Icon } from '../icons';
 import { ResumeEditor } from './ResumeEditor';
+import { ApplicationPlan } from './CareerForms';
 
 type Tab = 'overview' | 'fit' | 'resume' | 'write' | 'track';
 
@@ -94,6 +95,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
 	const tracked = user?.tracker.find((t) => t.fp === openFp);
 	const job = jobs.find((j) => j.fp === openFp) ?? (tracked ? fromTrack(tracked) : undefined);
+	const manual = tracked?.fp.startsWith('manual-') ?? false;
 
 	useEffect(() => {
 		setTab('overview');
@@ -118,11 +120,16 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
 	/** Description: ATS API first, then the Posting cache, then Firecrawl (cached for 7 days). */
 	const loadDescription = async (): Promise<string> => {
-		if (desc) return desc.text;
+		if (desc) return desc.from === 'error' ? '' : desc.text;
+		if (tracked?.description?.trim()) {
+			setDesc({ text: tracked.description, from: 'saved posting' });
+			return tracked.description;
+		}
 		setDescBusy(true);
 		try {
 			const ats = await fetchAtsDescription(job);
 			if (ats) {
+				await cacheDescription(client, job.fp, ats);
 				setDesc({ text: ats, from: 'company job board' });
 				return ats;
 			}
@@ -145,7 +152,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 		}
 	};
 
-	const jobFacts = (description: string) => ({ job: { title: job.title, company: job.company, locations: job.locations.slice(0, 4), posted: localDate(new Date(job.posted * 1000)), description: description.slice(0, 12000) } });
+	const jobFacts = (description: string) => ({ job: { title: job.title, company: job.company, locations: job.locations.slice(0, 4), posted: manual ? null : localDate(new Date(job.posted * 1000)), description: description.slice(0, 12000) } });
 
 	const explain = async () => {
 		setBusy('fit');
@@ -250,9 +257,9 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 						</Section>
 					)}
 					<Section label="Freshness">
-						<LabelValue label="Posted">{`${new Date(job.posted * 1000).toLocaleDateString()} (${ago(job.posted)})`}</LabelValue>
-						<LabelValue label="First posted">{job.postCount > 1 ? `${new Date(job.firstPosted * 1000).toLocaleDateString()}, posted ${job.postCount} times` : 'Only posting of this role'}</LabelValue>
-						<LabelValue label="JobRadar saw it">{ago(job.firstSeen)}</LabelValue>
+						<LabelValue label="Posted">{manual ? 'Posting date not recorded' : `${new Date(job.posted * 1000).toLocaleDateString()} (${ago(job.posted)})`}</LabelValue>
+						<LabelValue label="First posted">{manual ? 'Posting history not recorded' : job.postCount > 1 ? `${new Date(job.firstPosted * 1000).toLocaleDateString()}, posted ${job.postCount} times` : 'Only posting of this role'}</LabelValue>
+						<LabelValue label={manual ? 'Added to tracker' : 'JobRadar saw it'}>{ago(job.firstSeen)}</LabelValue>
 					</Section>
 					<Section label="Details">
 						{job.terms?.length ? <LabelValue label="Term">{job.terms.join(', ')}</LabelValue> : null}
@@ -301,7 +308,11 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 				</PanelTabBody>
 			)}
 
-			{tab === 'resume' && <PanelTabBody><ResumeEditor key={job.fp} fp={job.fp} title={job.title} company={job.company} loadDescription={loadDescription} /></PanelTabBody>}
+			{tab === 'resume' && (
+				<PanelTabBody>
+					<ResumeEditor key={job.fp} fp={job.fp} title={job.title} company={job.company} loadDescription={loadDescription} />
+				</PanelTabBody>
+			)}
 
 			{tab === 'write' && (
 				<PanelTabBody>
@@ -350,6 +361,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 								))}
 								{tracked.outcome === 'posting_closed' && <StatusBadge variant="warning">Posting no longer listed</StatusBadge>}
 							</Section>
+							<ApplicationPlan key={tracked.fp} item={tracked} />
 							<Section label="Notes">
 								<textarea style={{ ...s.textarea, width: '100%', boxSizing: 'border-box' }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Recruiter name, referral, interview dates..." />
 								<div style={{ marginTop: 6 }}>

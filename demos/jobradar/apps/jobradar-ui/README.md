@@ -28,6 +28,55 @@ welcome area, pastel summary cards, and a job list beside its selected role.
 `src/icons.tsx` contain shared interface components. Detail tabs support arrow
 keys, Home, and End. The bundled sample resume is fictional.
 
+## Career tools (0.3.0)
+
+The [competitive review](docs/COMPETITIVE_RESEARCH.md) records the official
+Simplify, Teal, and Huntr sources and the gaps implemented in this version.
+
+- **Job Tracker > Add any job** captures a role from a public URL with manual
+  metadata and a pasted or Firecrawl-read description. Manual records show their
+  added date without inventing a posting date or repost history. The stored description
+  remains available after a posting closes. Duplicate normalized URLs are rejected.
+- **Track > Application plan** stores a deadline, priority, and editable checklist.
+  High-priority roles and nearer deadlines sort first within each tracker stage.
+- **Resume > Check keywords** checks the current resume text against a fixed skill
+  dictionary extracted from the posting. Present and absent terms are shown
+  separately. This is not an ATS score; unsupported skills must not be invented.
+- **Career tools > Search insights** shows recorded stages, response/interview
+  rates, six-week application cadence, a weekly goal, deadlines, and contact
+  follow-ups. Tracker CSV export quotes cells and neutralizes spreadsheet formulas.
+- **Networking** keeps contacts, related applications, notes, contact/follow-up
+  dates, and editable outreach drafts. Marking a contact as contacted is explicit.
+  No email is sent or contact searched externally.
+- **Interviews** stores local date/time, duration, location and notes; its calendar
+  download uses UTC event times and escaped/folded iCalendar text. It does not
+  write to an external calendar or book a meeting. A generated practice plan
+  uses the source resume and posting, keeps only exact source-supported story
+  quotes, and offers practice-answer feedback and employer questions.
+- **Answer bank** stores reusable application answers. AI drafting uses only the
+  resume and supplied facts, with an editable word target. The live word count
+  exposes drafts that need shortening. Copy/TXT export use the current editor.
+
+`src/lib/career.ts` contains domain types, metrics, keyword coverage, URL/date
+validation, CSV/iCalendar encoding, and practice-plan parsing. `careerApi.ts`
+loads posting context. `CareerHub.tsx` groups the four workspace tabs, while
+`CareerForms.tsx` supplies capture, per-job planning, and keyword checks.
+`careerHooks.ts` updates account records and patches shared app state.
+
+New records in the user file are `career` (contacts, interview dates, saved
+answers, weekly goal) and `prep:<job fp>` (resume-bound practice plans). Tracker
+records gain optional `description`, `priority`, `deadline`, and `checklist`
+fields. Older data loads without a migration. `storage.updateJson` serializes
+read-modify-write operations against the latest in-page snapshot to avoid losing
+one form's changes when another finishes saving. Cross-page limits still apply.
+
+The writer adds `interview_prep`, `practice_feedback`, `outreach`, and
+`application_answer` tasks using the existing Gemini node. Its `project_id`
+changes for this revision. `scripts/check-jobradar-career.mjs` validates and tests
+these tasks live against Cloud using fictional data. The test suite also covers
+calendar/CSV safety, stage-history math, manual capture, source quotes, and
+composed record updates.
+
 ## RocketRide nodes
 
 | Pipeline | Nodes | Purpose |
@@ -132,7 +181,7 @@ chose to skip Gmail connection for now; no mailbox access was granted.
 
 Cloud namespace `aidenbuck` was registered on November 24, 2026. The earlier Redis
 catalog and developer-registration blockers have been removed from this app's
-path. App 0.2.0 built successfully and is serving privately to `@me`, never publicly. Cloud provider secrets belong
+path. The app is published privately to `@me`, never publicly. Cloud provider secrets belong
 in the signed-in user's environment. Cloud deployment credentials stay in the
 ignored workspace `.env`.
 

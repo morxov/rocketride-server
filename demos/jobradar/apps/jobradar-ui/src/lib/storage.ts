@@ -97,6 +97,13 @@ function openStore(client: RocketRideClient, namespace: Namespace) {
 			return row.value ? (JSON.parse(row.value) as T) : null;
 		},
 		setJson: (key: string, value: unknown, ttl: number, condition?: 'NX' | 'XX') => r.set(key, JSON.stringify(value), ttl, condition),
+		updateJson: <T>(key: string, update: (current: T | null) => T, ttl = 0) =>
+			change(() => {
+				const row = current(key);
+				const value = update(row ? (JSON.parse(row.value) as T) : null);
+				data[key] = { value: JSON.stringify(value), expires: ttl > 0 ? Date.now() + ttl * 1000 : 0 };
+				return value;
+			}),
 		async deleteMany(keys: string[]) {
 			return (await r.delete(keys)).deleted_count;
 		},
