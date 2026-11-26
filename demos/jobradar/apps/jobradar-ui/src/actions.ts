@@ -19,9 +19,10 @@ export function useJobActions() {
 			if (!client) return false;
 			try {
 				const existing = app.user?.tracker.find((t) => t.fp === job.fp);
-				const item = await track(client, job, status, existing);
+				const item = await track(client, job, status);
 				patchUser((u) => ({ ...u, tracker: [item, ...u.tracker.filter((t) => t.fp !== job.fp)], seen: new Set(u.seen).add(job.fp), appliedThisWeek: status === 'applied' && !existing?.appliedAt ? u.appliedThisWeek + 1 : u.appliedThisWeek }));
-				if (status === 'applied' || status === 'interview' || status === 'assessment') await reloadUser(); // picks up the new reminder
+				if (status === 'applied' || status === 'interview' || status === 'assessment')
+					await reloadUser(); // picks up the new reminder
 				else if (status === 'offer' || status === 'closed') patchUser((u) => ({ ...u, reminders: u.reminders.filter((r) => !(r.source === 'app' && r.fp === job.fp)) })); // track() deleted it
 				toast({ variant: 'success', title: status === 'saved' ? 'Saved to tracker' : 'Tracker updated', body: `${job.title} at ${job.company}: ${status === 'applied' ? 'applied. A follow-up reminder is set for 7 days from now.' : status}` }, 5000);
 				return true;
@@ -30,7 +31,7 @@ export function useJobActions() {
 				return false;
 			}
 		},
-		[client, app.user, patchUser, reloadUser],
+		[client, app.user, patchUser, reloadUser]
 	);
 
 	const hide = useCallback(
@@ -43,7 +44,7 @@ export function useJobActions() {
 				fail(e);
 			}
 		},
-		[client, patchUser],
+		[client, patchUser]
 	);
 
 	const unhide = useCallback(
@@ -60,7 +61,7 @@ export function useJobActions() {
 				fail(e);
 			}
 		},
-		[client, patchUser],
+		[client, patchUser]
 	);
 
 	const seen = useCallback(
@@ -69,7 +70,7 @@ export function useJobActions() {
 			patchUser((u) => ({ ...u, seen: new Set(u.seen).add(fp) }));
 			await markSeen(client, fp).catch(() => undefined);
 		},
-		[client, app.user, patchUser],
+		[client, app.user, patchUser]
 	);
 
 	const remove = useCallback(
@@ -82,7 +83,7 @@ export function useJobActions() {
 				fail(e);
 			}
 		},
-		[client, patchUser],
+		[client, patchUser]
 	);
 
 	return { setStatus, hide, unhide, seen, remove };

@@ -141,6 +141,16 @@
 	cursor: pointer;
 	flex-shrink: 0;
 }
+.jr-app [role='dialog'] {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+.jr-app [role='dialog'] > [role='tablist'] {
+	overflow-x: auto;
+}
+.jr-app [role='dialog'] > [role='tablist'] > [role='tab'] {
+	flex-shrink: 0;
+}
 .jr-content {
 	flex: 1;
 	min-height: 0;
@@ -929,6 +939,8 @@ button.jr-metric:hover {
 		margin-left: auto;
 	}
 	.jr-topnav {
+		height: auto;
+		min-width: 0;
 		order: 2;
 		flex: 1 0 100%;
 		overflow-x: auto;

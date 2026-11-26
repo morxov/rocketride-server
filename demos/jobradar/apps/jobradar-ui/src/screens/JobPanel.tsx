@@ -9,7 +9,7 @@ import { profileFacts, write } from '../lib/ai';
 import { ago, type ScoredJob } from '../lib/match';
 import { scrapePage } from '../lib/pipelines';
 import { fetchAtsDescription } from '../lib/sources';
-import { STATUSES, cacheDescription, cacheFit, cachedDescription, cachedFit, updateTrackItem, type Status, type TrackItem, localDate } from '../lib/store';
+import { STATUSES, cacheDescription, cacheFit, cachedDescription, cachedFit, patchTracked, type Status, type TrackItem, localDate } from '../lib/store';
 import { toast, useApp } from '../state';
 import { JobFlags, s, scoreColor } from '../ui';
 import { Icon } from '../icons';
@@ -22,7 +22,7 @@ const ps: Record<string, React.CSSProperties> = {
 	scoreBig: { width: 42, height: 42, borderRadius: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 },
 	chips: { display: 'flex', gap: 6, flexWrap: 'wrap', margin: '4px 0 12px' },
 	list: { margin: '4px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.55 },
-	desc: { fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', maxHeight: 420, overflowY: 'auto', border: '1px solid var(--rr-border)', borderRadius: 6, padding: '10px 12px', background: 'var(--rr-bg-surface)' },
+	desc: { fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflowY: 'auto', border: '1px solid var(--rr-border)', borderRadius: 6, padding: '10px 12px', background: 'var(--rr-bg-surface)' },
 	statusRow: { display: 'flex', gap: 6, flexWrap: 'wrap' },
 };
 
@@ -184,12 +184,17 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
 	const saveNotes = async () => {
 		if (!tracked) return;
-		const item = { ...tracked, notes };
-		await updateTrackItem(client, item);
-		app.patchUser((u) => ({ ...u, tracker: u.tracker.map((t) => (t.fp === item.fp ? item : t)) }));
-		toast({ variant: 'success', title: 'Notes saved', body: job.company }, 3000);
+		setBusy('notes');
+		try {
+			const item = await patchTracked(client, tracked.fp, { notes });
+			app.patchUser((u) => ({ ...u, tracker: u.tracker.map((t) => (t.fp === item.fp ? item : t)) }));
+			toast({ variant: 'success', title: 'Notes saved', body: job.company }, 3000);
+		} catch (e) {
+			toast({ variant: 'error', title: 'Notes did not save', body: e instanceof Error ? e.message : String(e) });
+		} finally {
+			setBusy(null);
+		}
 	};
-
 	const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast({ variant: 'success', title: 'Copied', body: 'Paste it into your email or application.' }, 3000));
 
 	const tabs = [
@@ -365,7 +370,7 @@ export const JobPanel: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 							<Section label="Notes">
 								<textarea style={{ ...s.textarea, width: '100%', boxSizing: 'border-box' }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Recruiter name, referral, interview dates..." />
 								<div style={{ marginTop: 6 }}>
-									<Button variant="secondary" small disabled={notes === tracked.notes} onClick={() => void saveNotes()}>
+									<Button variant="secondary" small disabled={!!busy || notes === tracked.notes} onClick={() => void saveNotes()}>
 										Save notes
 									</Button>
 								</div>

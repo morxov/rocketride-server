@@ -52,7 +52,9 @@ Simplify, Teal, and Huntr sources and the gaps implemented in this version.
   download uses UTC event times and escaped/folded iCalendar text. It does not
   write to an external calendar or book a meeting. A generated practice plan
   uses the source resume and posting, keeps only exact source-supported story
-  quotes, and offers practice-answer feedback and employer questions.
+  quotes, and offers practice-answer feedback and employer questions. Candidate
+  practice questions and questions to ask the employer are distinct. Cached plans
+  are bound to both the source resume and writer pipeline revision.
 - **Answer bank** stores reusable application answers. AI drafting uses only the
   resume and supplied facts, with an editable word target. The live word count
   exposes drafts that need shortening. Copy/TXT export use the current editor.
@@ -68,7 +70,9 @@ answers, weekly goal) and `prep:<job fp>` (resume-bound practice plans). Tracker
 records gain optional `description`, `priority`, `deadline`, and `checklist`
 fields. Older data loads without a migration. `storage.updateJson` serializes
 read-modify-write operations against the latest in-page snapshot to avoid losing
-one form's changes when another finishes saving. Cross-page limits still apply.
+one form's changes when another finishes saving. Notes, status changes and posting
+closure updates merge their own fields instead of replacing stale tracker records.
+Cross-page limits still apply.
 
 The writer adds `interview_prep`, `practice_feedback`, `outreach`, and
 `application_answer` tasks using the existing Gemini node. Its `project_id`

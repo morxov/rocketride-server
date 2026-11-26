@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Banner, Button, MarkdownRenderer } from 'shell';
-import { write } from '../lib/ai';
+import { write, WRITER_VERSION } from '../lib/ai';
 import { downloadFile, interviewCalendar, parseInterviewPrep, type Interview, type InterviewPrep } from '../lib/career';
 import { careerPosting } from '../lib/careerApi';
 import { sourceHash } from '../lib/documents';
@@ -37,9 +37,9 @@ export const CareerInterviews: React.FC = () => {
 		setError('');
 		if (client && fp)
 			void dataStore(client, 'user')
-				.getJson<InterviewPrep & { sourceHash: string }>(`prep:${fp}`)
+				.getJson<InterviewPrep & { sourceHash: string; writerVersion: string }>(`prep:${fp}`)
 				.then((value) => {
-					if (alive && value?.sourceHash === resumeHash) setPrep(value);
+					if (alive && value?.sourceHash === resumeHash && value.writerVersion === WRITER_VERSION) setPrep(value);
 				})
 				.catch((e: unknown) => alive && setError(String(e)));
 		return () => {
@@ -240,7 +240,7 @@ export const CareerInterviews: React.FC = () => {
 									if (!job) return;
 									const description = await getDescription();
 									const next = parseInterviewPrep(await write(client, 'interview_prep', { source_resume: user.resume, job: { title: job.title, company: job.company, description: description.slice(0, 16000) } }), user.resume);
-									await dataStore(client, 'user').setJson(`prep:${job.fp}`, { ...next, sourceHash: resumeHash }, 0);
+									await dataStore(client, 'user').setJson(`prep:${job.fp}`, { ...next, sourceHash: resumeHash, writerVersion: WRITER_VERSION }, 0);
 									setPrep(next);
 									setQuestionIndex(0);
 									setAnswer('');

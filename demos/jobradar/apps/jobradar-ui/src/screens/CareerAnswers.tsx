@@ -176,8 +176,8 @@ export const CareerAnswers: React.FC = () => {
 					))}
 					{!answers.length && (
 						<div className="jr-career-empty">
-							<h3>Your answer library is ready.</h3>
-							<p>Write an answer, or save one from interview practice.</p>
+							<h3>{user.career.answers.length ? 'No answers match your search.' : 'Your answer library is ready.'}</h3>
+							<p>{user.career.answers.length ? 'Try another question or phrase.' : 'Write an answer, or save one from interview practice.'}</p>
 						</div>
 					)}
 				</Panel>

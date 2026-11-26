@@ -2,12 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from '../../apps/jobradar-ui/node_modules/typescript/lib/typescript.js';
+const modules = new Map();
+function moduleUrl(name) {
+	if (modules.has(name)) return modules.get(name);
+	const code = readFileSync(
+		new URL(`../../apps/jobradar-ui/src/lib/${name}.ts`, import.meta.url),
+		'utf8'
+	);
+	const output = ts
+		.transpileModule(code, {
+			compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+		})
+		.outputText.replace(
+			/from ['"]\.\/([^'"]+)['"]/g,
+			(_, dependency) => `from '${moduleUrl(dependency)}'`
+		);
+	const url = `data:text/javascript;base64,${Buffer.from(output).toString('base64')}`;
+	modules.set(name, url);
+	return url;
+}
 async function source(name) {
-	const code = readFileSync(new URL(`../../apps/jobradar-ui/src/lib/${name}.ts`, import.meta.url), 'utf8');
-	const output = ts.transpileModule(code, {
-		compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
-	}).outputText;
-	return import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+	return import(moduleUrl(name));
 }
 const { dataStore } = await source('storage');
 const { readTailoredResume, sourceHash } = await source('documents');
@@ -40,7 +55,10 @@ test('serialized concurrent updates survive reopening and preserve TTL condition
 	assert.equal((await store.get('count')).value, '20');
 	assert.equal((await store.set('count', 'wrong', 0, 'NX')).stored, false);
 	assert.equal((await store.set('absent', 'wrong', 0, 'XX')).stored, false);
-	const fresh = dataStore({ fsReadString: client.fsReadString, fsWriteString: client.fsWriteString }, 'user');
+	const fresh = dataStore(
+		{ fsReadString: client.fsReadString, fsWriteString: client.fsWriteString },
+		'user'
+	);
 	assert.equal((await fresh.get('count')).value, '20');
 	await store.set('expired', 'x', -1);
 	await store.expire('expired', -1);
@@ -78,11 +96,16 @@ test('resume output validates structure and binds saved versions to the source',
 test('runtime pipelines contain no Redis nodes and email is read-only', () => {
 	for (const name of ['profile', 'writer', 'assistant', 'jobradar-tools', 'email']) {
 		const pipeline = JSON.parse(
-			readFileSync(new URL(`../../apps/jobradar-ui/src/pipelines/${name}.pipe`, import.meta.url))
+			readFileSync(
+				new URL(`../../apps/jobradar-ui/src/pipelines/${name}.pipe`, import.meta.url)
+			)
 		);
 		assert.ok(pipeline.components.every((node) => node.provider !== 'tool_redis'));
 		if (name === 'email')
-			assert.equal(pipeline.components.find((node) => node.provider === 'tool_gmail').config.access, 'readonly');
+			assert.equal(
+				pipeline.components.find((node) => node.provider === 'tool_gmail').config.access,
+				'readonly'
+			);
 	}
 });
 
@@ -128,14 +151,22 @@ function emailModule({
 				return {
 					__esModule: true,
 					default: JSON.parse(
-						readFileSync(new URL('../../apps/jobradar-ui/src/pipelines/email.pipe', import.meta.url))
+						readFileSync(
+							new URL(
+								'../../apps/jobradar-ui/src/pipelines/email.pipe',
+								import.meta.url
+							)
+						)
 					),
 				};
 			if (name.includes('documents')) return { jsonAnswer: (text) => JSON.parse(text) };
 			throw Error(`Unexpected import ${name}`);
 		},
 	};
-	const code = readFileSync(new URL('../../apps/jobradar-ui/src/lib/email.ts', import.meta.url), 'utf8');
+	const code = readFileSync(
+		new URL('../../apps/jobradar-ui/src/lib/email.ts', import.meta.url),
+		'utf8'
+	);
 	vm.runInNewContext(
 		ts.transpileModule(code, {
 			compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
@@ -164,7 +195,10 @@ test('OAuth callback removes URL secrets and configures only the read-only Gmail
 	assert.equal(storage.get('jobradar:gmail:task'), 'running-task');
 	const gmail = pipeline.components.find((node) => node.provider === 'tool_gmail');
 	assert.equal(gmail.config.access, 'readonly');
-	assert.equal(JSON.parse(gmail.config.userToken).oauth_server_url, 'https://oauth2.rocketride.ai/refresh');
+	assert.equal(
+		JSON.parse(gmail.config.userToken).oauth_server_url,
+		'https://oauth2.rocketride.ai/refresh'
+	);
 });
 test('an unrelated OAuth callback is cleared and cannot start a Gmail task', async () => {
 	const { api, cleanUrl } = emailModule({ callbackNonce: 'different-session' });
@@ -232,7 +266,13 @@ test('manual capture preserves the posting and canonicalizes tracking links safe
 	])
 		assert.throws(() => career.webUrl(url));
 	assert.throws(() =>
-		career.manualJob({ title: '', company: 'x', url: 'https://example.com', location: '', description: '' })
+		career.manualJob({
+			title: '',
+			company: 'x',
+			url: 'https://example.com',
+			location: '',
+			description: '',
+		})
 	);
 });
 test('keyword coverage uses aliases and boundaries rather than substring match scores', () => {
@@ -245,7 +285,9 @@ test('keyword coverage uses aliases and boundaries rather than substring match s
 	assert.equal(result.percent, 60);
 	assert.equal(career.keywordCoverage('Nothing technical specified', '').percent, null);
 	assert.equal(career.keywordCoverage('We go to the office.', '').total, 0);
-	assert.deepEqual(career.keywordCoverage('Build services in Go.', 'Go developer').matched, ['Go']);
+	assert.deepEqual(career.keywordCoverage('Build services in Go.', 'Go developer').matched, [
+		'Go',
+	]);
 });
 test('metrics preserve reached stages and do not treat posting closure as a rejection', () => {
 	const at = (date) => Date.parse(date) / 1000;
@@ -260,8 +302,18 @@ test('metrics preserve reached stages and do not treat posting closure as a reje
 				{ status: 'interview', at: 2 },
 			],
 		}),
-		tracked({ fp: 'c', status: 'closed', outcome: 'posting_closed', appliedAt: at('2026-11-01T12:00:00Z') }),
-		tracked({ fp: 'd', status: 'closed', outcome: 'rejected', appliedAt: at('2026-11-01T12:00:00Z') }),
+		tracked({
+			fp: 'c',
+			status: 'closed',
+			outcome: 'posting_closed',
+			appliedAt: at('2026-11-01T12:00:00Z'),
+		}),
+		tracked({
+			fp: 'd',
+			status: 'closed',
+			outcome: 'rejected',
+			appliedAt: at('2026-11-01T12:00:00Z'),
+		}),
 		tracked({ fp: 'e', status: 'offer' }),
 	];
 	const metrics = career.searchMetrics(items, new Date('2026-11-25T20:00:00Z'));
@@ -308,14 +360,20 @@ test('calendar export uses UTC, escapes event data, and folds UTF-8 lines safely
 	assert.equal(ics.match(/\r\nBEGIN:VEVENT\r\n/g).length, 1);
 	for (const line of ics.split('\r\n')) assert.ok(Buffer.byteLength(line, 'utf8') <= 75);
 	assert.throws(() =>
-		career.interviewCalendar({ ...event, start: 'invalid' }, { title: 'Engineer', company: 'Example' })
+		career.interviewCalendar(
+			{ ...event, start: 'invalid' },
+			{ title: 'Engineer', company: 'Example' }
+		)
 	);
 });
 test('career edits compose against the newest record instead of overwriting another form', async () => {
 	const client = fileClient();
 	const store = dataStore(client, 'user');
 	await Promise.all([
-		store.updateJson('career', (value) => ({ ...career.normalizeCareer(value), weeklyGoal: 9 })),
+		store.updateJson('career', (value) => ({
+			...career.normalizeCareer(value),
+			weeklyGoal: 9,
+		})),
 		store.updateJson('career', (value) => {
 			const current = career.normalizeCareer(value);
 			return { ...current, contacts: [{ id: 'contact' }, ...current.contacts] };
@@ -334,15 +392,81 @@ test('interview preparation only retains evidence actually present in the resume
 				evidence: 'Built a React dashboard used by 200 students.',
 				angle: 'Explain your implementation choices.',
 			},
-			{ headline: 'Invented', evidence: 'Managed 50 engineers at NASA.', angle: 'Leadership' },
+			{
+				headline: 'Invented',
+				evidence: 'Managed 50 engineers at NASA.',
+				angle: 'Leadership',
+			},
 		],
 		askEmployer: ['What would success look like?'],
 	});
-	const prep = career.parseInterviewPrep(answer, 'Jordan Lee\nBuilt a React dashboard used by 200 students.');
+	const prep = career.parseInterviewPrep(
+		answer,
+		'Jordan Lee\nBuilt a React dashboard used by 200 students.'
+	);
 	assert.equal(prep.questions.length, 1);
 	assert.equal(prep.stories.length, 1);
 	assert.equal(prep.stories[0].headline, 'Real');
 	assert.throws(() => career.parseInterviewPrep('{"questions":[]}', ''));
 	assert.equal(career.calendarDate('2026-02-31'), false);
 	assert.equal(career.calendarDate('2028-02-29'), true);
+});
+
+test('notes, plans, statuses and posting closure preserve each other across stale views', async () => {
+	const { track, patchTracked, detectClosed } = await source('store');
+	const client = fileClient();
+	const job = {
+		fp: 'regression-role',
+		title: 'Engineer',
+		company: 'Example',
+		url: 'https://example.com/job',
+		locations: [],
+	};
+	const stale = await track(client, job, 'saved');
+	const checklist = [{ id: 'qa', label: 'Review', done: true }];
+	await patchTracked(client, job.fp, { priority: 'high', deadline: '2026-12-01', checklist });
+	client.failNext();
+	await assert.rejects(
+		patchTracked(client, job.fp, { notes: 'Failed notes' }),
+		/Connection lost/
+	);
+	assert.equal((await dataStore(client, 'user').getJson(`app:${job.fp}`)).priority, 'high');
+	await patchTracked(client, job.fp, { notes: 'Keep my plan' });
+	const applied = await track(client, job, 'applied');
+	assert.equal(applied.priority, 'high');
+	assert.equal(applied.notes, 'Keep my plan');
+	assert.deepEqual(applied.checklist, checklist);
+	const closed = await detectClosed(
+		client,
+		{ tracker: [stale] },
+		{
+			openFps: new Set(),
+			closedFps: new Set([job.fp]),
+			boardsChecked: [],
+		}
+	);
+	assert.equal(closed.closed[0].status, 'applied');
+	assert.equal(closed.closed[0].priority, 'high');
+	assert.equal(closed.closed[0].notes, 'Keep my plan');
+	const reopened = await detectClosed(
+		client,
+		{ tracker: closed.closed },
+		{
+			openFps: new Set([job.fp]),
+			closedFps: new Set(),
+			boardsChecked: [],
+		}
+	);
+	assert.equal(reopened.reopened[0].outcome, undefined);
+	assert.equal(reopened.reopened[0].deadline, '2026-12-01');
+	const fresh = dataStore(
+		{ fsReadString: client.fsReadString, fsWriteString: client.fsWriteString },
+		'user'
+	);
+	assert.deepEqual((await fresh.getJson(`app:${job.fp}`)).checklist, checklist);
+	await dataStore(client, 'user').delete([`app:${job.fp}`]);
+	await assert.rejects(
+		patchTracked(client, job.fp, { notes: 'Do not resurrect' }),
+		/tracker first/
+	);
 });

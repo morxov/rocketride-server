@@ -9,6 +9,8 @@ import writerPipe from '../pipelines/writer.pipe';
 import type { Profile } from './match';
 import { dropToken, pipelineToken } from './pipelines';
 
+export const WRITER_VERSION = writerPipe.project_id;
+
 const sampleResumeUrl = new URL('../assets/sample-resume.pdf', import.meta.url).href;
 
 function parseJsonObject(raw: unknown): Record<string, unknown> {

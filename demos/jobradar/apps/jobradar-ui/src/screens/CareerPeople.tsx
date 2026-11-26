@@ -202,8 +202,8 @@ export const CareerPeople: React.FC = () => {
 			</div>
 			{!contacts.length && (
 				<div className="jr-career-empty">
-					<h3>Your network starts with one conversation.</h3>
-					<p>Add a recruiter, mentor, or someone at a company you like.</p>
+					<h3>{user.career.contacts.length ? 'No contacts match your search.' : 'Your network starts with one conversation.'}</h3>
+					<p>{user.career.contacts.length ? 'Try another name, company, or note.' : 'Add a recruiter, mentor, or someone at a company you like.'}</p>
 				</div>
 			)}
 		</div>

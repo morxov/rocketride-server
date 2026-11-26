@@ -36,8 +36,10 @@ try {
 	}
 	const answer = await ask('interview_prep', {});
 	const prep = JSON.parse(answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1));
-	if (!prep.questions?.length || !prep.askEmployer?.length)
+	if (prep.questions?.length !== 6 || !prep.askEmployer?.length)
 		throw Error('Interview preparation is incomplete');
+	if (prep.questions.filter((item) => /\byou(?:r)?\b/i.test(item.question)).length < 4)
+		throw Error('Practice questions are not addressed to the candidate');
 	const supported = prep.stories.filter((story) =>
 		source.toLowerCase().includes(String(story.evidence).toLowerCase())
 	);
@@ -51,7 +53,8 @@ try {
 	);
 	const feedback = await ask('practice_feedback', {
 		question: prep.questions[0].question,
-		answer: 'I built a React dashboard used by 200 students. ' +
+		answer:
+			'I built a React dashboard used by 200 students. ' +
 			'I implemented the dashboard and tested its features with students.',
 	});
 	if (!/STAR|situation|task|action|result/i.test(feedback) || feedback.length < 100)

@@ -163,7 +163,7 @@ export const saveResume = (c: RocketRideClient, text: string) => dataStore(c, 'u
 export const savePrefs = (c: RocketRideClient, p: Prefs) => dataStore(c, 'user').setJson('prefs', p, 0);
 
 export const changeCareer = (c: RocketRideClient, update: (current: CareerData) => CareerData) => dataStore(c, 'user').updateJson<CareerData>('career', (current) => update(normalizeCareer(current)));
-export const patchTracked = (c: RocketRideClient, fp: string, patch: Pick<TrackItem, 'deadline' | 'priority' | 'checklist'>) =>
+export const patchTracked = (c: RocketRideClient, fp: string, patch: Partial<Pick<TrackItem, 'deadline' | 'priority' | 'checklist' | 'notes' | 'outcome'>>) =>
 	dataStore(c, 'user').updateJson<TrackItem>(`app:${fp}`, (current) => {
 		if (!current) throw new Error('Save this job to the tracker first.');
 		return { ...current, ...patch, updatedAt: nowSec() };
@@ -220,16 +220,22 @@ export const unhideJob = (c: RocketRideClient, fp: string) => dataStore(c, 'seen
 // TRACKER
 // =============================================================================
 
-export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'title' | 'company' | 'url' | 'locations'>, status: Status, existing?: TrackItem): Promise<TrackItem> {
+export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'title' | 'company' | 'url' | 'locations'>, status: Status): Promise<TrackItem> {
 	const user = dataStore(c, 'user');
 	const now = nowSec();
-	const item: TrackItem = existing ? { ...existing, status, updatedAt: now, history: [...existing.history, { status, at: now }] } : { fp: job.fp, title: job.title, company: job.company, url: job.url, location: job.locations.slice(0, 2).join(', '), status, createdAt: now, updatedAt: now, history: [{ status, at: now }], notes: '' };
-	if (status === 'applied' && !item.appliedAt) {
-		item.appliedAt = now;
+	let firstApplication = false;
+	const item = await user.updateJson<TrackItem>(`app:${job.fp}`, (current) => {
+		const next: TrackItem = current ? { ...current, status, updatedAt: now, history: [...current.history, { status, at: now }] } : { fp: job.fp, title: job.title, company: job.company, url: job.url, location: job.locations.slice(0, 2).join(', '), status, createdAt: now, updatedAt: now, history: [{ status, at: now }], notes: '' };
+		if (status === 'applied' && !next.appliedAt) {
+			next.appliedAt = now;
+			firstApplication = true;
+		}
+		return next;
+	});
+	if (firstApplication) {
 		await user.incr(`stat:applied:${isoWeek()}`);
 		await user.expire(`stat:applied:${isoWeek()}`, 120 * DAY);
 	}
-	await user.setJson(`app:${job.fp}`, item, 0);
 
 	// Follow-up reminders: 7 days after applying, 2 days after an interview.
 	const followIn = status === 'applied' ? 7 : status === 'interview' ? 2 : status === 'assessment' ? 5 : 0;
@@ -242,10 +248,6 @@ export async function track(c: RocketRideClient, job: Pick<ScoredJob, 'fp' | 'ti
 	}
 	await dataStore(c, 'seen').set(`s:${job.fp}`, '1', SEEN_TTL);
 	return item;
-}
-
-export async function updateTrackItem(c: RocketRideClient, item: TrackItem): Promise<void> {
-	await dataStore(c, 'user').setJson(`app:${item.fp}`, { ...item, updatedAt: nowSec() }, 0, 'XX');
 }
 
 export const untrack = (c: RocketRideClient, fp: string) => dataStore(c, 'user').delete([`app:${fp}`, `remind:${fp}`, `fit:${fp}`]);
@@ -366,8 +368,7 @@ export async function detectClosed(c: RocketRideClient, user: UserData, r: Pick<
 		if (t.status === 'closed' || t.status === 'offer') continue;
 		if (t.outcome === 'posting_closed') {
 			if (r.openFps.has(t.fp)) {
-				const item: TrackItem = { ...t, outcome: undefined };
-				await updateTrackItem(c, item);
+				const item = await patchTracked(c, t.fp, { outcome: undefined });
 				reopened.push(item);
 			}
 			continue;
@@ -381,8 +382,7 @@ export async function detectClosed(c: RocketRideClient, user: UserData, r: Pick<
 				return key !== '' && !b.urls.has(key);
 			});
 		if (!gone) continue;
-		const item: TrackItem = { ...t, outcome: 'posting_closed' };
-		await updateTrackItem(c, item);
+		const item = await patchTracked(c, t.fp, { outcome: 'posting_closed' });
 		closed.push(item);
 	}
 	return { closed, reopened };
